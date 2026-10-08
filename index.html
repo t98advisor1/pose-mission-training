@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선생님 포즈 게임</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            color: #374151;
+        }
+
+        .app-card {
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 2.5rem;
+            width: 100%;
+            max-width: 480px;
+            height: 780px;
+            max-height: 94vh;
+            position: relative;
+            border: 4px solid #ffffff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .screen {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 18px 12px 18px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .floating {
+            animation: float 2.5s ease-in-out infinite;
+        }
+
+        .app-title {
+            color: #f97316;
+            font-size: 2.25rem;
+            line-height: 1.2;
+            text-align: center;
+            margin-bottom: 12px;
+            text-shadow: 1px 1px 0 #fff;
+        }
+
+        .subtitle {
+            color: #4b5563;
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 20px;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 9999px;
+            border: 2px solid #fed7aa;
+            outline: none;
+            font-size: 1.1rem;
+            font-family: inherit;
+            text-align: center;
+            background: #fff;
+            transition: border-color 0.2s;
+        }
+
+        .text-input:focus {
+            border-color: #f97316;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 9999px;
+            padding: 10px 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background-color: #fb923c;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #f97316;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+
+        .btn-secondary {
+            background-color: #9ca3af;
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #6b7280;
+        }
+
+        .mission-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .badge-tag {
+            font-size: 0.9rem;
+            background: #ffedd5;
+            color: #ea580c;
+            padding: 4px 10px;
+            border-radius: 9999px;
+        }
+
+        .score-tag {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: #ea580c;
+        }
+
+        .mission-title {
+            font-size: 1.4rem;
+            color: #c2410c;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .pose-example-card {
+            width: 100%;
+            max-width: 380px;
+            background: #fff;
+            border-radius: 1.25rem;
+            padding: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 2px solid #ffedd5;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            color: #ea580c;
+            background: #fff7ed;
+            border: 1px solid #fdba74;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        .example-image-box {
+            width: 100%;
+            height: 120px;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .example-image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .webcam-container {
+            width: 100%;
+            max-width: 380px;
+            height: 180px;
+            background-color: #111827;
+            border-radius: 1.25rem;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            margin-bottom: 8px;
+        }
+
+        .webcam-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: none;
+        }
+
+        .webcam-placeholder {
+            color: #9ca3af;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 12px;
+            white-space: pre-line;
+        }
+
+        .progress-box {
+            width: 100%;
+            max-width: 380px;
+            margin-bottom: 8px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f97316, #22c55e);
+            transition: width 0.05s linear;
+        }
+
+        .status-banner {
+            font-size: 0.85rem;
+            color: #4b5563;
+            min-height: 20px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            max-width: 380px;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        .footer {
+            padding: 10px 16px;
+            background-color: #fff7ed;
+            border-top: 1px solid #ffedd5;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #9a3412;
+            flex-shrink: 0;
+        }
+    /* 화면 내부 스크롤 보장 및 요소 찌그러짐 방지 */
+.screen {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.screen > * {
+    flex-shrink: 0;
+}
+
+.webcam-container {
+    min-height: 180px;
+    flex-shrink: 0;
+}
+
+.pose-example-card,
+.progress-box,
+.status-banner,
+.controls,
+#sync-dashboard-container {
+    flex-shrink: 0;
+}
+</style>
+
+    <script type="module">
+        import {
+            PoseLandmarker,
+            GestureRecognizer,
+            FilesetResolver
+        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+        window.MP_PoseLandmarker = PoseLandmarker;
+        window.MP_GestureRecognizer = GestureRecognizer;
+        window.MP_FilesetResolver = FilesetResolver;
+        window.dispatchEvent(new Event('mediapipe-ready'));
+    </script>
+</head>
+<body>
+
+    <div class="app-card">
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="screen active">
+            <div style="font-size: 4rem; margin-top: 24px; margin-bottom: 12px;" class="floating">👩‍🏫📸👨‍🏫</div>
+            <h1 class="app-title">선생님<br>포즈 게임</h1>
+            <p class="subtitle">AI 비전과 함께 7가지 포즈에 도전해 보세요!</p>
+            
+            <div class="input-group">
+                <input type="text" id="nickname-input" class="text-input" placeholder="도전자 닉네임을 입력하세요" maxlength="12">
+            </div>
+
+            <button id="start-btn" class="btn btn-primary" style="width: 100%; max-width: 280px; margin-bottom: 12px;">게임 시작하기</button>
+            <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
+                * 카메라 영상과 신체 좌표는 기기 내부에서만 처리되며 외부로 저장·전송되지 않습니다.
+            </p>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" class="screen">
+            <div class="mission-header">
+                <span id="player-tag" class="badge-tag">도전자: 선생님</span>
+                <span id="step-badge" class="badge-tag">1 / 7</span>
+                <span id="score-text" class="score-tag">0 / 700점</span>
+            </div>
+
+            <h2 id="pose-title" class="mission-title">큰 V</h2>
+
+            <div class="pose-example-card">
+                <div class="badge">AI 생성 포즈 예시</div>
+                <div class="example-image-box">
+                    <img id="pose-img" src="" alt="포즈 예시 이미지">
+                </div>
+            </div>
+
+            <div class="webcam-container">
+                <video id="webcam" autoplay playsinline muted class="webcam-feed"></video>
+                <div id="cam-status" class="webcam-placeholder">카메라를 켜주세요.</div>
+            </div>
+
+            <div class="progress-box">
+                <div class="progress-header">
+                    <span>자세 유지 (2초)</span>
+                    <span id="hold-text">0.0초</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progress-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div id="status-banner" class="status-banner">카메라 시작 버튼을 눌러주세요.</div>
+
+            <div class="controls">
+                <button id="cam-start-btn" class="btn btn-primary">카메라 시작</button>
+                <button id="cam-stop-btn" class="btn btn-danger" disabled>카메라 종료</button>
+            </div>
+            <div class="controls">
+                <button id="prev-btn" class="btn btn-secondary">이전</button>
+                <button id="next-btn" class="btn btn-primary">다음 포즈</button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            교사와 학부모를 위한 바이브 코딩 All rights reserved
+        </footer>
+    </div>
+
+    <script src="./sheets-sync.js"></script>
+<script>// 7가지 포즈 목록 및 모드 정의
+const poses = [
+    { id: "big_v", name: "큰 V", src: "photos/big-v-v2.png", type: "pose" },
+    { id: "heart", name: "머리 위 하트", src: "photos/heart-v2.png", type: "pose" },
+    { id: "victory", name: "한손 브이", src: "photos/victory-v2.png", type: "gesture", gesture: "Victory" },
+    { id: "thumb_up", name: "엄지척", src: "photos/thumb-up-v2.png", type: "gesture", gesture: "Thumb_Up" },
+    { id: "flower", name: "꽃받침", src: "photos/flower-v2.png", type: "hybrid" },
+    { id: "hero", name: "슈퍼히어로", src: "photos/hero-v2.png", type: "pose" },
+    { id: "dab", name: "가벼운 댑", src: "photos/dab-v2.png", type: "pose" }
+];
+
+// 게임 진행 상태 변수
+let clearedPoses = new Array(poses.length).fill(false);
+let currentPoseIndex = 0;
+let totalScore = 0;
+
+// 카메라 스트림 및 생명주기 세대 번호 (Generation Token)
+
+
+// MediaPipe 모델 및 추론 상태
+let poseLandmarker = null;
+let gestureRecognizer = null;
+let modelLoadingPromise = null;
+let animationFrameId = null;
+let lastVideoTime = -1;
+
+// 정밀 시간 누적 변수
+let lastFrameTimestamp = null;
+let accumulatedHoldMs = 0;
+const REQUIRED_HOLD_MS = 2000;
+const MAX_DELTA_TOLERANCE_MS = 250;
+const MIN_CONFIDENCE = 0.55;
+
+// DOM 요소 참조
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+const nicknameInput = document.getElementById('nickname-input');
+const startBtn = document.getElementById('start-btn');
+const playerTag = document.getElementById('player-tag');
+const stepBadge = document.getElementById('step-badge');
+const scoreText = document.getElementById('score-text');
+const poseTitle = document.getElementById('pose-title');
+const poseImg = document.getElementById('pose-img');
+const webcam = document.getElementById('webcam');
+const camStatus = document.getElementById('cam-status');
+const progressFill = document.getElementById('progress-fill');
+const holdText = document.getElementById('hold-text');
+const statusBanner = document.getElementById('status-banner');
+const camStartBtn = document.getElementById('cam-start-btn');
+const camStopBtn = document.getElementById('cam-stop-btn');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+
+// 유지 시간 및 프로그레스바 초기화
+function resetHoldTimer(reasonMsg = null) {
+    accumulatedHoldMs = 0;
+    lastFrameTimestamp = null;
+    progressFill.style.width = '0%';
+    holdText.innerText = '0.0초';
+    if (reasonMsg && !clearedPoses[currentPoseIndex]) {
+        statusBanner.innerText = reasonMsg;
+    }
+}
+
+// 탭 이탈(hidden) 및 pagehide 감지 처리
+function handleAppDeactivation() {
+    resetHoldTimer("화면을 벗어나 유지가 초기화되었습니다.");
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        handleAppDeactivation();
+    } else {
+        if (localStream && !animationFrameId) {
+            lastFrameTimestamp = null;
+            lastVideoTime = -1;
+            animationFrameId = requestAnimationFrame(predictWebcam);
+        }
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    handleAppDeactivation();
+    stopCamera();
+});
+
+// 관절 유효성 검증 함수 (finite, 화면 범위 [0, 1], 신뢰도)
+// MediaPipe 모델 단일 Promise 로더 (GPU 실패 시 CPU 폴백)
+async function initAIModels() {
+    if (poseLandmarker && gestureRecognizer) return true;
+    if (modelLoadingPromise) return modelLoadingPromise;
+
+    modelLoadingPromise = (async () => {
+        statusBanner.innerText = "AI 인식 모델을 준비하는 중입니다...";
+        camStatus.innerText = "AI 모델 로딩 중...";
+
+        if (!window.MP_FilesetResolver) {
+            await new Promise(resolve => window.addEventListener('mediapipe-ready', resolve, { once: true }));
+        }
+
+        const vision = await window.MP_FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+        );
+
+        const tryCreatePipeline = async (delegateType) => {
+            let createdPose = null;
+            try {
+                createdPose = await window.MP_PoseLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+                        delegate: delegateType
+                    },
+                    runningMode: "VIDEO",
+                    numPoses: 1
+                });
+
+                const createdGesture = await window.MP_GestureRecognizer.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+                        delegate: delegateType
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2
+                });
+
+                return { pose: createdPose, gesture: createdGesture };
+            } catch (err) {
+                if (createdPose && typeof createdPose.close === 'function') {
+                    try {
+                        createdPose.close();
+                    } catch (closeErr) {
+                        console.warn("Pose 인스턴스 해제 중 예외:", closeErr);
+                    }
+                }
+                throw err;
+            }
+        };
+
+        try {
+            const models = await tryCreatePipeline("GPU");
+            poseLandmarker = models.pose;
+            gestureRecognizer = models.gesture;
+        } catch (gpuError) {
+            console.warn("GPU 대리자 초기화 실패, CPU 모드로 재시도합니다:", gpuError);
+            statusBanner.innerText = "GPU 가속 불가로 CPU 모드로 전환 중입니다...";
+            const models = await tryCreatePipeline("CPU");
+            poseLandmarker = models.pose;
+            gestureRecognizer = models.gesture;
+        }
+
+        statusBanner.innerText = "모델 준비 완료! 카메라를 시작할 수 있습니다.";
+        camStatus.innerText = "카메라 시작 버튼을 눌러주세요.";
+        return true;
+    })().catch(err => {
+        console.error("AI 모델 로딩 최종 실패:", err);
+        modelLoadingPromise = null;
+        statusBanner.innerText = "AI 모델 로딩 실패. 네트워크 환경을 확인해 주세요.";
+        camStatus.innerText = "AI 모델 로드 실패";
+        return false;
+    });
+
+    return modelLoadingPromise;
+}
+
+// 7대 포즈 판정 로직
+// 1. 관절 랜드마크 유효성 검사 (정규화 좌표 및 visibility 신뢰도 검증)
+function isValidPoint(pt) {
+    if (!pt) return false;
+    if (typeof pt.x !== 'number' || typeof pt.y !== 'number' || typeof pt.visibility !== 'number') {
+        return false;
+    }
+    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y) || !Number.isFinite(pt.visibility)) {
+        return false;
+    }
+    if (pt.x < 0.0 || pt.x > 1.0 || pt.y < 0.0 || pt.y > 1.0) {
+        return false;
+    }
+    if (pt.visibility < MIN_CONFIDENCE) {
+        return false;
+    }
+    return true;
+}
+
+// 2. 손 랜드마크 21개 유효성 검사 (손 좌표는 visibility 검사 제외, finite 및 0~1 범위만 검증)
+function isValidHandLandmarks(handPoints) {
+    if (!handPoints || !Array.isArray(handPoints) || handPoints.length !== 21) {
+        return false;
+    }
+    for (let i = 0; i < 21; i++) {
+        const pt = handPoints[i];
+        if (!pt || typeof pt.x !== 'number' || typeof pt.y !== 'number') {
+            return false;
+        }
+        if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) {
+            return false;
+        }
+        if (pt.x < 0.0 || pt.x > 1.0 || pt.y < 0.0 || pt.y > 1.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 3. 실제 픽셀 종횡비(videoWidth, videoHeight)를 반영한 2D 각도 계산 (B가 꼭짓점)
+function calculateAngle(A, B, C) {
+    const w = (webcam && webcam.videoWidth) ? webcam.videoWidth : 640;
+    const h = (webcam && webcam.videoHeight) ? webcam.videoHeight : 480;
+
+    const v1x = (A.x - B.x) * w;
+    const v1y = (A.y - B.y) * h;
+    const v2x = (C.x - B.x) * w;
+    const v2y = (C.y - B.y) * h;
+
+    const dot = v1x * v2x + v1y * v2y;
+    const mag1 = Math.hypot(v1x, v1y);
+    const mag2 = Math.hypot(v2x, v2y);
+
+    if (mag1 === 0 || mag2 === 0) return 0;
+
+    let cosTheta = dot / (mag1 * mag2);
+    cosTheta = Math.max(-1.0, Math.min(1.0, cosTheta));
+    return (Math.acos(cosTheta) * 180) / Math.PI;
+}
+
+// 4. 단일 손 제스처 판별 (한손 브이, 엄지척)
+function checkGestureMatches(targetGestureName, gestureResults) {
+    if (!gestureResults || !gestureResults.gestures || !gestureResults.landmarks) {
+        return false;
+    }
+
+    const gestures = gestureResults.gestures;
+    const allHandLandmarks = gestureResults.landmarks;
+
+    for (let i = 0; i < gestures.length; i++) {
+        const handGestures = gestures[i];
+        const handPoints = allHandLandmarks[i];
+
+        if (handGestures && handGestures.length > 0 && isValidHandLandmarks(handPoints)) {
+            const topGesture = handGestures[0];
+            if (topGesture.categoryName === targetGestureName && topGesture.score >= 0.6) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// 5. 7대 포즈 종합 판별 (큰 V, 머리 위 하트, 꽃받침, 슈퍼히어로, 가벼운 댑)
+function checkPoseMatches(targetId, lm, gestureResults) {
+    const nose = lm[0];
+    const lSh = lm[11], rSh = lm[12];
+    const lEl = lm[13], rEl = lm[14];
+    const lWr = lm[15], rWr = lm[16];
+    const lHip = lm[23], rHip = lm[24];
+
+    // 포즈 판별 공통 필수 관절 유효성 검증
+    const requiredPoints = [nose, lSh, rSh, lEl, rEl, lWr, rWr];
+    for (let i = 0; i < requiredPoints.length; i++) {
+        if (!isValidPoint(requiredPoints[i])) return false;
+    }
+
+    const shoulderY = (lSh.y + rSh.y) / 2;
+    const shoulderWidth = Math.hypot(lSh.x - rSh.x, lSh.y - rSh.y);
+    if (shoulderWidth < 0.05) return false;
+
+    // 팔꿈치 픽셀 각도
+    const leftElbowAngle = calculateAngle(lSh, lEl, lWr);
+    const rightElbowAngle = calculateAngle(rSh, rEl, rWr);
+
+    switch (targetId) {
+        case "big_v": {
+            const handsAboveHead = lWr.y < nose.y && rWr.y < nose.y;
+            const armsStraight = leftElbowAngle >= 135 && rightElbowAngle >= 135;
+            const handsWide = Math.abs(lWr.x - rWr.x) > shoulderWidth * 1.35;
+            return handsAboveHead && armsStraight && handsWide;
+        }
+
+        case "heart": {
+            const handsAboveNose = lWr.y < nose.y && rWr.y < nose.y;
+            const armsBent = leftElbowAngle >= 45 && leftElbowAngle <= 125 &&
+                             rightElbowAngle >= 45 && rightElbowAngle <= 125;
+            const handsClose = Math.abs(lWr.x - rWr.x) < shoulderWidth * 0.95;
+            return handsAboveNose && armsBent && handsClose;
+        }
+
+        case "flower": {
+            // 1) 신체 관절 기하 조건 (손목이 턱/볼 높이 및 어깨 위)
+            const nearFaceY = Math.abs(lWr.y - nose.y) < 0.22 && Math.abs(rWr.y - nose.y) < 0.22;
+            const nearChinX = Math.abs(lWr.x - nose.x) < shoulderWidth * 0.9 &&
+                              Math.abs(rWr.x - nose.x) < shoulderWidth * 0.9;
+            const handsAboveShoulders = lWr.y < shoulderY && rWr.y < shoulderY;
+            if (!nearFaceY || !nearChinX || !handsAboveShoulders) {
+                return false;
+            }
+
+            // 2) 제스처 인식 결과 확인 (2개 이상의 유효한 손과 Open_Palm)
+            if (!gestureResults || !gestureResults.gestures || !gestureResults.landmarks) {
+                return false;
+            }
+
+            const validPalms = [];
+            for (let i = 0; i < gestureResults.gestures.length; i++) {
+                const handGestures = gestureResults.gestures[i];
+                const handPoints = gestureResults.landmarks[i];
+
+                if (handGestures && handGestures.length > 0 && isValidHandLandmarks(handPoints)) {
+                    const topGesture = handGestures[0];
+                    if (topGesture.categoryName === "Open_Palm" && topGesture.score >= 0.5) {
+                        validPalms.push({
+                            wrist: handPoints[0] // 손의 0번 랜드마크(손목)
+                        });
+                    }
+                }
+            }
+
+            if (validPalms.length < 2) {
+                return false;
+            }
+
+            // 3) 각 손의 손목0번이 얼굴 양옆(코 기준 좌우 분할)에 위치하는지 검사
+            const handA = validPalms[0].wrist;
+            const handB = validPalms[1].wrist;
+            const isSeparatedAcrossNose = (handA.x < nose.x && handB.x > nose.x) || (handA.x > nose.x && handB.x < nose.x);
+            if (!isSeparatedAcrossNose) {
+                return false;
+            }
+
+            // 4) 각 손의 손목0번이 서로 다른 Pose 손목(15번, 16번)과 근접한지 검사
+            const maxWristDist = shoulderWidth * 0.7;
+            const distAtoL = Math.hypot(handA.x - lWr.x, handA.y - lWr.y);
+            const distBtoR = Math.hypot(handB.x - rWr.x, handB.y - rWr.y);
+            const pair1 = (distAtoL < maxWristDist && distBtoR < maxWristDist);
+
+            const distAtoR = Math.hypot(handA.x - rWr.x, handA.y - rWr.y);
+            const distBtoL = Math.hypot(handB.x - lWr.x, handB.y - lWr.y);
+            const pair2 = (distAtoR < maxWristDist && distBtoL < maxWristDist);
+
+            return pair1 || pair2;
+        }
+
+        case "hero": {
+            if (!isValidPoint(lHip) || !isValidPoint(rHip)) return false;
+            const hipY = (lHip.y + rHip.y) / 2;
+
+            const isLeftArmRaised = lWr.y < nose.y && Math.abs(lWr.x - lSh.x) > shoulderWidth * 0.4 && leftElbowAngle >= 120;
+            const isRightHandOnWaist = Math.abs(rWr.y - hipY) < 0.22 && Math.abs(rWr.x - rSh.x) < shoulderWidth * 0.95;
+
+            const isRightArmRaised = rWr.y < nose.y && Math.abs(rWr.x - rSh.x) > shoulderWidth * 0.4 && rightElbowAngle >= 120;
+            const isLeftHandOnWaist = Math.abs(lWr.y - hipY) < 0.22 && Math.abs(lWr.x - lSh.x) < shoulderWidth * 0.95;
+
+            return (isLeftArmRaised && isRightHandOnWaist) || (isRightArmRaised && isLeftHandOnWaist);
+        }
+
+        case "dab": {
+            const leftStraight = Math.abs(lWr.x - lSh.x) > shoulderWidth * 0.7 && lWr.y < shoulderY && leftElbowAngle >= 125;
+            const rightFoldedFace = Math.abs(rWr.x - nose.x) < shoulderWidth * 0.65 && Math.abs(rWr.y - nose.y) < 0.22 && rightElbowAngle <= 100;
+
+            const rightStraight = Math.abs(rWr.x - rSh.x) > shoulderWidth * 0.7 && rWr.y < shoulderY && rightElbowAngle >= 125;
+            const leftFoldedFace = Math.abs(lWr.x - nose.x) < shoulderWidth * 0.65 && Math.abs(lWr.y - nose.y) < 0.22 && leftElbowAngle <= 100;
+
+            return (leftStraight && rightFoldedFace) || (rightStraight && leftFoldedFace);
+        }
+
+        default:
+            return false;
+    }
+}
+
+// 실시간 비전 추론 루프
+async function predictWebcam() {
+    if (!localStream || webcam.paused || webcam.ended) {
+        return;
+    }
+
+    const now = performance.now();
+
+    // 250ms 초과 프레임 공백 감지 시 누적 유지시간 0으로 즉시 초기화
+    if (lastFrameTimestamp !== null) {
+        const frameGap = now - lastFrameTimestamp;
+        if (frameGap > MAX_DELTA_TOLERANCE_MS) {
+            resetHoldTimer("프레임 지연으로 유지가 초기화되었습니다.");
+        }
+    }
+
+    if (webcam.currentTime !== lastVideoTime && poseLandmarker && gestureRecognizer) {
+        lastVideoTime = webcam.currentTime;
+        const currentMission = poses[currentPoseIndex];
+        let isMatched = false;
+
+        try {
+            let poseResults = null;
+            let gestureResults = null;
+
+            if (currentMission.type === "pose" || currentMission.type === "hybrid") {
+                poseResults = poseLandmarker.detectForVideo(webcam, now);
+            }
+            if (currentMission.type === "gesture" || currentMission.type === "hybrid") {
+                gestureResults = gestureRecognizer.recognizeForVideo(webcam, now);
+            }
+
+            if (currentMission.type === "pose") {
+                if (poseResults && poseResults.landmarks && poseResults.landmarks.length > 0) {
+                    isMatched = checkPoseMatches(currentMission.id, poseResults.landmarks[0], null);
+                    if (!isMatched) {
+                        statusBanner.innerText = "포즈 일치 대기 중...";
+                    }
+                } else {
+                    resetHoldTimer("사람이 감지되지 않거나 관절이 명확하지 않습니다.");
+                }
+            } else if (currentMission.type === "gesture") {
+                isMatched = checkGestureMatches(currentMission.gesture, gestureResults);
+                if (!isMatched) {
+                    statusBanner.innerText = `${currentMission.name} 손동작을 명확히 보여주세요.`;
+                }
+            } else if (currentMission.type === "hybrid") {
+                if (poseResults && poseResults.landmarks && poseResults.landmarks.length > 0) {
+                    isMatched = checkPoseMatches(currentMission.id, poseResults.landmarks[0], gestureResults);
+                    if (!isMatched) {
+                        statusBanner.innerText = "양손을 펴 얼굴 옆에 꽃받침을 만들어 주세요.";
+                    }
+                } else {
+                    resetHoldTimer("사람이 감지되지 않거나 관절이 명확하지 않습니다.");
+                }
+            }
+
+            // 자세 매칭 여부에 따른 2초 누적 연산
+            if (isMatched) {
+                if (lastFrameTimestamp !== null) {
+                    const delta = now - lastFrameTimestamp;
+                    if (delta > 0 && delta <= MAX_DELTA_TOLERANCE_MS) {
+                        accumulatedHoldMs += delta;
+                    }
+                }
+                lastFrameTimestamp = now;
+
+                const progressRatio = Math.min(accumulatedHoldMs / REQUIRED_HOLD_MS, 1.0);
+                progressFill.style.width = `${(progressRatio * 100).toFixed(0)}%`;
+                holdText.innerText = `${(accumulatedHoldMs / 1000).toFixed(1)}초`;
+                statusBanner.innerText = "✨ 자세 유지 중! 조금만 더 유지해 주세요!";
+
+                if (accumulatedHoldMs >= REQUIRED_HOLD_MS) {
+                    if (!clearedPoses[currentPoseIndex]) {
+                        clearedPoses[currentPoseIndex] = true;
+                        totalScore += 100;
+                        window.PoseSheet.complete(currentMission.name);
+                        scoreText.innerText = `${totalScore} / 700점`;
+                        statusBanner.innerText = `🎉 성공! 100점을 획득했습니다! (현재 ${totalScore}점)`;
+                    } else {
+                        statusBanner.innerText = "이미 완료한 미션입니다! 다음 포즈로 넘어가 보세요.";
+                    }
+                }
+            } else {
+                if (accumulatedHoldMs > 0) {
+                    resetHoldTimer("자세가 흐트러졌습니다. 다시 유지해 주세요!");
+                } else {
+                    lastFrameTimestamp = null;
+                }
+            }
+        } catch (inferError) {
+            console.error("추론 중 예외 발생:", inferError);
+            resetHoldTimer("인식 오류가 발생하여 유지가 초기화되었습니다.");
+        }
+    }
+
+    animationFrameId = requestAnimationFrame(predictWebcam);
+}
+
+// 카메라 시작: 세대 번호 토큰 검증 및 모델 성공 후 getUserMedia 요청
+// 카메라 라이프사이클 및 대기 취소 관리를 위한 상태 변수
+let cameraGeneration = 0;
+let localStream = null;
+let isStartingCamera = false;
+let cameraAbortController = null;
+
+// 카메라 시작: 세대 검증, getUserMedia 즉시 localStream 등록, AbortController 기반 대기 취소
+async function startCamera() {
+    if (isStartingCamera || localStream) return;
+    isStartingCamera = true;
+
+    const thisGen = ++cameraGeneration;
+
+    // 이전 대기 작업이 남아있다면 취소 후 새로 생성
+    if (cameraAbortController) {
+        cameraAbortController.abort();
+    }
+    cameraAbortController = new AbortController();
+    const currentSignal = cameraAbortController.signal;
+
+    camStartBtn.disabled = true;
+    camStopBtn.disabled = false;
+    camStatus.innerText = "AI 모델 및 카메라 준비 중입니다...";
+
+    let requestStream = null;
+
+    try {
+        const isModelReady = await initAIModels();
+
+        // 모델 로드 직후 세대 확인 (대기 중 stopCamera 호출 시 조기 반환)
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        if (!isModelReady) {
+            camStatus.style.display = 'block';
+            camStatus.innerText = "AI 모델을 불러오지 못했습니다.";
+            statusBanner.innerText = "모델 준비에 실패했습니다. 다시 시도해 주세요.";
+            camStartBtn.disabled = false;
+            camStopBtn.disabled = true;
+            return;
+        }
+
+        requestStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+            audio: false
+        });
+
+        // getUserMedia 직후 세대 검사: 만약 이미 세대가 변경되었다면 이 요청의 스트림만 즉시 해제
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            requestStream.getTracks().forEach(track => track.stop());
+            return;
+        }
+
+        // 현재 세대이면 즉시 localStream에 등록하여 stopCamera가 즉시 소유 및 종료할 수 있도록 보장
+        localStream = requestStream;
+        webcam.srcObject = requestStream;
+
+        // 트랙 예기치 못한 하드웨어 종료 리스너 등록
+        requestStream.getVideoTracks().forEach(track => {
+            track.addEventListener('ended', () => {
+                if (thisGen === cameraGeneration) {
+                    stopCamera();
+                    camStatus.innerText = "카메라 장치 연결이 종료되었습니다.";
+                }
+            });
+        });
+
+        // loadeddata 대기 및 abort 시 리스너·Promise 즉시 해제
+        await new Promise((resolve, reject) => {
+            if (webcam.readyState >= 2) {
+                resolve();
+                return;
+            }
+
+            const onLoadedData = () => {
+                currentSignal.removeEventListener('abort', onAbort);
+                resolve();
+            };
+
+            const onAbort = () => {
+                webcam.removeEventListener('loadeddata', onLoadedData);
+                reject(new DOMException("Camera start aborted", "AbortError"));
+            };
+
+            webcam.addEventListener('loadeddata', onLoadedData, { once: true });
+            currentSignal.addEventListener('abort', onAbort, { once: true });
+        });
+
+        // 비디오 데이터 대기 직후 세대 확인
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        // play() 실행
+        try {
+            await webcam.play();
+        } catch (playErr) {
+            // 오래된 요청이면 아무것도 건드리지 않고 반환
+            if (thisGen !== cameraGeneration) {
+                return;
+            }
+
+            console.error("비디오 재생 실패:", playErr);
+            if (requestStream) {
+                requestStream.getTracks().forEach(track => track.stop());
+            }
+            if (localStream === requestStream) {
+                localStream = null;
+            }
+            webcam.srcObject = null;
+            throw playErr;
+        }
+
+        // play() 직후 세대 재검증
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        // 최종 활성화 완료 처리
+        webcam.style.display = 'block';
+        camStatus.style.display = 'none';
+
+        resetHoldTimer();
+        lastVideoTime = -1;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(predictWebcam);
+
+    } catch (err) {
+        // 취소(AbortError)된 경우 에러 로그 생략
+        if (err.name !== "AbortError") {
+            console.error("카메라 시작 에러:", err);
+        }
+
+        // 오래된 요청은 새 요청 상태를 건드리지 않고 자기 스트림만 닫음
+        if (thisGen !== cameraGeneration) {
+            if (requestStream) {
+                requestStream.getTracks().forEach(track => track.stop());
+            }
+            return;
+        }
+
+        // 현재 요청이 실패한 경우 스트림 해제 및 재시도 가능 상태로 복원
+        if (requestStream) {
+            requestStream.getTracks().forEach(track => track.stop());
+        }
+        if (localStream === requestStream) {
+            localStream = null;
+        }
+        webcam.srcObject = null;
+
+        camStatus.style.display = 'block';
+        camStatus.innerText = "카메라를 시작할 수 없습니다.\n권한과 장치 연결을 확인해 주세요.";
+        statusBanner.innerText = "카메라 접근 권한이 필요합니다.";
+        camStartBtn.disabled = false;
+        camStopBtn.disabled = true;
+    } finally {
+        if (thisGen === cameraGeneration) {
+            isStartingCamera = false;
+        }
+    }
+}
+
+// 카메라 종료: 세대 번호 즉시 증가, 대기 취소(abort), 준비 중/재생 중 스트림 점유 즉시 해제
+function stopCamera() {
+    cameraGeneration++;
+    isStartingCamera = false;
+
+    // 대기 중인 loadeddata/Promise 즉시 취소
+    if (cameraAbortController) {
+        cameraAbortController.abort();
+        cameraAbortController = null;
+    }
+
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    // 이미 열려 있거나 준비 중 등록된 스트림 즉시 정지
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    webcam.pause();
+    webcam.srcObject = null;
+    webcam.style.display = 'none';
+    camStatus.style.display = 'block';
+    camStatus.innerText = "카메라가 꺼졌습니다.";
+
+    camStartBtn.disabled = false;
+    camStopBtn.disabled = true;
+    resetHoldTimer("카메라가 종료되었습니다.");
+}
+
+// 포즈 뷰 렌더링
+function renderPoseView(index) {
+    const pose = poses[index];
+    stepBadge.innerText = `${index + 1} / ${poses.length}`;
+    poseTitle.innerText = pose.name;
+    poseImg.src = pose.src;
+    poseImg.alt = `${pose.name} 예시 이미지`;
+
+    resetHoldTimer();
+    if (clearedPoses[index]) {
+        statusBanner.innerText = "✅ 이미 성공한 미션입니다! (+100점 완료)";
+    } else {
+        statusBanner.innerText = "2초 동안 정확한 자세를 유지해 보세요!";
+    }
+
+    prevBtn.style.visibility = (index === 0) ? 'hidden' : 'visible';
+    nextBtn.innerText = (index === poses.length - 1) ? '처음으로' : '다음 포즈';
+}
+
+// 새 게임 시작: 모든 점수와 완료 배열 완전 초기화
+startBtn.addEventListener('click', () => {
+    // 기본값('선생님')으로 자동 대체하지 않고 원본 입력값을 그대로 전달
+    const rawNickname = nicknameInput.value.trim();
+
+    try {
+        // 빈 문자열, 12자 초과, 수식 기호 입력 시 PoseSheet.begin 내부에서 throw 발생
+        const session = window.PoseSheet.begin(rawNickname);
+        playerTag.innerText = `도전자: ${session.nickname}`;
+    } catch (validationErr) {
+        alert(validationErr.message);
+        nicknameInput.focus();
+        return;
+    }
+
+    // 게임 상태 및 UI 초기화
+    clearedPoses = new Array(poses.length).fill(false);
+    totalScore = 0;
+    scoreText.innerText = `0 / 700점`;
+    currentPoseIndex = 0;
+
+    startScreen.classList.remove('active');
+    gameScreen.classList.add('active');
+
+    renderPoseView(currentPoseIndex);
+});
+
+// 버튼 이벤트 리스너
+camStartBtn.addEventListener('click', startCamera);
+camStopBtn.addEventListener('click', stopCamera);
+
+prevBtn.addEventListener('click', () => {
+    if (currentPoseIndex > 0) {
+        currentPoseIndex--;
+        renderPoseView(currentPoseIndex);
+    }
+});
+
+nextBtn.addEventListener('click', () => {
+    if (currentPoseIndex < poses.length - 1) {
+        currentPoseIndex++;
+        renderPoseView(currentPoseIndex);
+    } else {
+        stopCamera();
+        gameScreen.classList.remove('active');
+        startScreen.classList.add('active');
+    }
+});
+
+// ESM 모듈 로드 알림 수신 시 모델 사전 로드 시도
+window.addEventListener('mediapipe-ready', () => {
+    initAIModels();
+});</script>
+</body>
+</html>
