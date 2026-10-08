@@ -180,7 +180,7 @@ html, body {
     z-index: 10;
 }
 
-/* 전체 화면 포즈 사진 1초 예고 Overlay */
+/* 전체 화면 포즈 사진 2초 예고 Overlay */
 .pose-preview-overlay {
     position: absolute;
     inset: 0;
@@ -523,7 +523,7 @@ html, body {
     z-index: 5;
 }
 
-/* 3. 1초 예고 프레임: 화면 크기에 맞춰 꽉 차게 확장 */
+/* 3. 2초 예고 프레임: 화면 크기에 맞춰 꽉 차게 확장 */
 .pose-preview-overlay {
     padding: 8px !important;
 }
@@ -580,6 +580,157 @@ html, body {
         font-size: 0.65rem !important;
     }
 }
+
+/* preview-overlay 기본 구조 및 상하단 텍스트 영역 */
+#preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 50;
+}
+
+#preview-overlay.active {
+  display: flex !important;
+}
+
+#preview-overlay .preview-badge,
+#preview-overlay .preview-caption {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  line-height: 1.2;
+}
+
+/* stage 남은 영역을 채우는 이미지 프레임 (vh 배제, flex 기반 비율 축소) */
+#preview-overlay .preview-image-frame {
+  flex: 1 1 0% !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: min(100%, 900px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 4px auto !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* 좌측 메인 사진 카드 (7) */
+#preview-overlay .preview-card-main {
+  flex: 7 1 0% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* 우측 힌트 카드 (3) */
+#preview-overlay .preview-card-hint {
+  flex: 3 1 0% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 8px;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#preview-overlay .preview-hint-header {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.4);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+#preview-overlay .preview-hint-body {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 인라인 style="display: none"을 덮지 않도록 :not([style*="display: none"]) 처리 */
+#preview-overlay #pose-img,
+#preview-overlay #pose-hint-img:not([style*="display: none"]) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+#preview-overlay .preview-hint-fallback {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 11px;
+  color: #cbd5e1;
+  text-align: center;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+/* 세로 폭이 매우 좁은 환경(높이 360px 이하) 폰트/패딩 최적화 */
+@media (max-height: 360px) {
+  #preview-overlay {
+    padding: 4px;
+  }
+  #preview-overlay .preview-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  #preview-overlay .preview-caption {
+    font-size: 11px;
+  }
+  #preview-overlay .preview-image-frame {
+    margin: 2px auto !important;
+    gap: 6px !important;
+  }
+  #preview-overlay .preview-hint-header {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+#elapsed-time{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:.85rem;color:#e0f2fe;}
+/* Codex 후속: 좁은 화면의 안내와 타이머 가독성 */
+@media (max-width: 600px) {
+  .game-compact-header > div:nth-child(2) { flex-wrap: wrap; gap: 3px; }
+  .pose-brief-desc { width: 100%; white-space: normal; font-size: .76rem; }
+  #player-tag { max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-top-row { font-size: .8rem; }
+  .toolbar-btn { padding: 8px 3px; font-size: .7rem; word-break: keep-all; }
+}
 </style>
 
     <script type="module">
@@ -606,7 +757,7 @@ html, body {
                 <h1 class="brand-title">선생님<br>포즈 게임</h1>
                 <p class="brand-desc">
                     카메라 앞에서 신나게 포즈를 맞추고<br>
-                    <strong>기본 700점 + 깜짝 이벤트 보너스</strong>에 도전하세요!
+                    <strong>기본 700점 + 전신 보너스 최대 300점 + 이벤트 보너스</strong>에 도전하세요!
                 </p>
 
                 <div class="input-box-wrapper">
@@ -636,7 +787,7 @@ html, body {
             <div class="header-top-row">
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <span id="player-tag" style="color: #cbd5e1; font-size: 0.85rem;">도전자: -</span>
-                    <span id="step-badge" class="step-chip">1 / 7</span>
+                    <span id="step-badge" class="step-chip">1 / 7</span><span id="elapsed-time" aria-label="경과 시간">⏱ 00:00</span>
                 </div>
                 <div class="score-display-group">
                     <span id="score-text" class="score-base-chip">0점</span>
@@ -649,7 +800,7 @@ html, body {
             </div>
         </div>
 
-        <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 1초 예고) -->
+        <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 2초 예고) -->
         <div id="vision-stage" class="vision-stage">
             <video id="webcam" class="vision-feed" autoplay playsinline muted></video>
             <canvas id="pose-overlay" class="vision-canvas"></canvas>
@@ -664,14 +815,26 @@ html, body {
             <!-- 깜짝 보너스 팝업 -->
             <div id="bonus-toast" class="toast-bonus-popup">보너스 +20점! ✨</div>
 
-            <!-- 포즈 사진 1초 전체 예고 오버레이 -->
-            <div id="preview-overlay" class="pose-preview-overlay">
-                <div class="preview-badge">AI 생성 포즈 예시</div>
-                <div class="preview-image-frame">
-                    <img id="pose-img" src="" alt="포즈 예시 사진">
-                </div>
-                <div id="preview-caption" class="preview-caption">잠시 후 카메라가 시작됩니다!</div>
-            </div>
+            <!-- 포즈 사진 2초 전체 예고 오버레이 -->
+<div id="preview-overlay" class="pose-preview-overlay">
+  <div class="preview-badge">포즈 예시 (2초 후 시작)</div>
+  <div class="preview-image-frame">
+    <div class="preview-card preview-card-main">
+      <img id="pose-img" src="" alt="포즈 예시 사진">
+    </div>
+    <div class="preview-card preview-card-hint">
+      <div class="preview-hint-header">자세 힌트</div>
+      <div class="preview-hint-body">
+        <img id="pose-hint-img" src="" alt="관절 연결선 힌트">
+        <div id="pose-hint-fallback" class="preview-hint-fallback" style="display: none;">
+          힌트 이미지를 불러올 수 없습니다
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="preview-caption" class="preview-caption">잠시 후 카메라가 시작됩니다!</div>
+</div>
+
         </div>
 
         <!-- 하단 조작 바 & 얇은 2초 게이지 -->
@@ -685,7 +848,7 @@ html, body {
             <div class="game-action-toolbar">
                 <button id="pause-resume-btn" class="toolbar-btn">⏸️ 일시정지</button>
                 <button id="replay-photo-btn" class="toolbar-btn">🖼️ 사진 다시보기</button>
-                <button id="decor-toggle" class="toolbar-btn" aria-pressed="true">🍓 장식 켜짐</button>
+                <button id="decor-toggle" class="toolbar-btn" aria-pressed="true">🎨 장식 켜짐</button>
                 <button id="exit-game-btn" class="toolbar-btn btn-danger">⏹️ 게임 종료</button>
             </div>
         </div>
@@ -710,7 +873,7 @@ html, body {
                         <strong id="result-base-score" style="color: #c2410c;">700점</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #4b5563;">
-                        <span>이벤트 보너스 점수</span>
+                        <span>이벤트 + 전신 보너스</span>
                         <strong id="result-bonus-score" style="color: #16a34a;">+0점</strong>
                     </div>
                     <div style="height: 1px; background: #fed7aa;"></div>
@@ -720,6 +883,8 @@ html, body {
                     </div>
                 </div>
 
+                <p id="result-bonus-breakdown" style="color:#4b5563;margin:4px 0">이벤트 +0점 · 전신 +0점</p>
+                <p id="result-elapsed-time" style="color:#0369a1;margin:4px 0 12px;font-weight:bold">소요 시간 00:00</p>
                 <div id="result-sync-status" class="sync-badge-box" style="margin-bottom: 16px;">점수 저장 확인 중...</div>
 
                 <button id="retry-btn" class="btn-cta">다시 도전하기 🔄</button>
@@ -743,7 +908,7 @@ html, body {
 
 </div>
 
-<script src="./sheets-sync.js?v=20261009-21"></script>
+<script src="./sheets-sync.js?v=20261009-30"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -753,7 +918,8 @@ const poses = [
     { id: "thumb_up", name: "엄지척", src: "photos/thumb-up-v2.png", type: "gesture", gesture: "Thumb_Up" },
     { id: "flower", name: "꽃받침", src: "photos/flower-v2.png", type: "hybrid" },
     { id: "hero", name: "슈퍼히어로", src: "photos/hero-v2.png", type: "pose" },
-    { id: "dab", name: "가벼운 댑", src: "photos/dab-v2.png", type: "pose" }
+    { id: "dab", name: "가벼운 댑", src: "photos/dab-v2.png", type: "pose" },
+    { id: "body_bonus", name: "전신 보너스", src: "hints/body_bonus.svg", type: "bonus" }
 ];
 
 // 게임 진행 상태 변수
@@ -1057,13 +1223,14 @@ function checkPoseMatches(targetId, lm, gestureResults) {
             }
 
             // 4) 각 손의 손목0번이 서로 다른 Pose 손목(15번, 16번)과 근접한지 검사
-            const maxWristDist = shoulderWidth * 0.7;
-            const distAtoL = Math.hypot(handA.x - lWr.x, handA.y - lWr.y);
-            const distBtoR = Math.hypot(handB.x - rWr.x, handB.y - rWr.y);
+            const pixelDistance = (a, b) => Math.hypot((a.x - b.x) * (webcam.videoWidth || 640), (a.y - b.y) * (webcam.videoHeight || 480));
+            const maxWristDist = pixelDistance(lSh, rSh) * 0.7;
+            const distAtoL = pixelDistance(handA, lWr);
+            const distBtoR = pixelDistance(handB, rWr);
             const pair1 = (distAtoL < maxWristDist && distBtoR < maxWristDist);
 
-            const distAtoR = Math.hypot(handA.x - rWr.x, handA.y - rWr.y);
-            const distBtoL = Math.hypot(handB.x - lWr.x, handB.y - lWr.y);
+            const distAtoR = pixelDistance(handA, rWr);
+            const distBtoL = pixelDistance(handB, lWr);
             const pair2 = (distAtoR < maxWristDist && distBtoL < maxWristDist);
 
             return pair1 || pair2;
@@ -1304,6 +1471,6 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261009-21"></script>
+<script src="./experience.js?v=20261009-30"></script>
 </body>
 </html>

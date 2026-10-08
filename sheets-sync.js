@@ -1,6 +1,7 @@
 /**
- * sheets-sync.js - 선생님 포즈 게임 구글 시트 연동 및 랭킹 모듈
- * (영수증 정밀 검증: base/bonus/total 범위·배수·합산 일치 검증, 구 V2 localStorage 완료 미션 마이그레이션 보존)
+ * Codex follow-up candidate 24, based on the preserved Gemini 19 sync assembly.
+ * Adds one canonical full-body bonus track and strict event/body receipts.
+ * This candidate is not the deployed sheets-sync.js. Gemini originals stay intact.
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -14,6 +15,68 @@
         "슈퍼히어로",
         "가벼운 댑"
     ];
+    const BODY_MISSIONS = ["전신 보너스 100", "전신 보너스 200", "전신 보너스 300"];
+    const BODY_KEY = "__full_body_bonus__";
+    const isBodyMission = mission => BODY_MISSIONS.includes(mission);
+    const isValidMission = mission => VALID_MISSIONS.includes(mission) || isBodyMission(mission);
+    const canonicalMissionKey = mission => isBodyMission(mission) ? BODY_KEY : mission;
+    const sameMissionTrack = (first, second) => canonicalMissionKey(first) === canonicalMissionKey(second);
+    const bodyGrade = mission => isBodyMission(mission) ? Number(mission.slice("전신 보너스 ".length)) : 0;
+    const bodyMissionForScore = score => score > 0 ? `전신 보너스 ${score}` : null;
+    const emptyScores = () => ({ baseScore: 0, bonusScore: 0, eventBonusScore: 0, bodyBonusScore: 0, totalScore: 0 });
+
+    // Legacy receipts have only base/bonus/total. They represent event bonus only.
+    function normalizeScores(value) {
+        if (!value || typeof value !== "object") return null;
+        const hasBody = Object.prototype.hasOwnProperty.call(value, "bodyBonusScore");
+        const hasEvent = Object.prototype.hasOwnProperty.call(value, "eventBonusScore");
+        const baseScore = value.baseScore;
+        const bonusScore = value.bonusScore;
+        const bodyBonusScore = hasBody ? value.bodyBonusScore : 0;
+        const eventBonusScore = hasEvent ? value.eventBonusScore : bonusScore;
+        const totalScore = value.totalScore;
+        const numbers = [baseScore, bonusScore, eventBonusScore, bodyBonusScore, totalScore];
+        if (!numbers.every(number => typeof number === "number" && Number.isFinite(number) && Number.isInteger(number))) return null;
+        if (baseScore < 0 || baseScore > 700 || baseScore % 100 !== 0) return null;
+        if (eventBonusScore < 0 || eventBonusScore > 210 || eventBonusScore % 10 !== 0 || eventBonusScore > baseScore / 100 * 30) return null;
+        if (![0, 100, 200, 300].includes(bodyBonusScore)) return null;
+        if (bodyBonusScore > 0 && (!hasEvent || baseScore !== 700)) return null;
+        if (bonusScore < 0 || bonusScore > 510 || bonusScore !== eventBonusScore + bodyBonusScore) return null;
+        if (totalScore < 0 || totalScore > 1210 || totalScore !== baseScore + bonusScore) return null;
+        return { baseScore, bonusScore, eventBonusScore, bodyBonusScore, totalScore };
+    }
+
+    function addCompletedMission(mission) {
+        if (!isValidMission(mission)) return;
+        if (isBodyMission(mission)) {
+            BODY_MISSIONS.forEach(name => currentCompletedMissions.delete(name));
+        }
+        currentCompletedMissions.add(mission);
+    }
+
+    function hasCompletedTrack(mission) {
+        return Array.from(currentCompletedMissions).some(name => sameMissionTrack(name, mission));
+    }
+
+    function validateReceipt(receipt, challengeId, mission) {
+        if (!receipt || receipt.status !== "success" || receipt.challengeId !== challengeId || receipt.saved !== true || !Array.isArray(receipt.completedMissions)) return null;
+        const scores = normalizeScores(receipt);
+        if (!scores) return null;
+        const completedBody = receipt.completedMissions.filter(isBodyMission);
+        if (scores.bodyBonusScore > 0) {
+            const actualMission = bodyMissionForScore(scores.bodyBonusScore);
+            if (completedBody.length !== 1 || completedBody[0] !== actualMission || !VALID_MISSIONS.every(name => receipt.completedMissions.includes(name))) return null;
+        } else if (completedBody.length) {
+            return null;
+        }
+        if (isBodyMission(mission)) {
+            if (!isBodyMission(receipt.mission) || scores.bodyBonusScore <= 0) return null;
+            // Query grade may differ from the first-written server grade.
+            return scores;
+        }
+        if (receipt.mission !== mission || !receipt.completedMissions.includes(mission)) return null;
+        return scores;
+    }
 
     const STORAGE_KEY = "POSE_GAME_SYNC_STATE_V2";
     const LEADERBOARD_DELAY_MS = 5000;
@@ -25,7 +88,7 @@
     let currentNickname = null;
     let syncQueue = []; // [{ challengeId, nickname, mission }]
     let currentCompletedMissions = new Set();
-    let currentConfirmedScores = { baseScore: 0, bonusScore: 0, totalScore: 0 };
+    let currentConfirmedScores = emptyScores();
     let currentScreen = "start"; // "start" | "game" | "result"
     let isProcessingQueue = false;
 
@@ -77,40 +140,40 @@
         }
     }
 
-    // localStorage 복구 (구 V2 데이터: completedMissions가 없고 queue만 있는 경우 자동 병합 마이그레이션)
+    // Restore V2 without deleting distinct old challenges; dedupe body grades as one track.
     function loadStorageState() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (!raw) return;
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed === "object") {
-                currentChallengeId = parsed.challengeId || null;
-                currentNickname = parsed.nickname || null;
+                currentChallengeId = typeof parsed.challengeId === "string" ? parsed.challengeId : null;
+                currentNickname = typeof parsed.nickname === "string" ? parsed.nickname : null;
                 if (Array.isArray(parsed.queue)) {
-                    syncQueue = parsed.queue;
+                    const restoredKeys = new Set();
+                    syncQueue = parsed.queue.filter(item => {
+                        if (!item || typeof item.challengeId !== "string" || typeof item.nickname !== "string" || !isValidMission(item.mission)) return false;
+                        const key = `${item.challengeId}|${canonicalMissionKey(item.mission)}`;
+                        if (restoredKeys.has(key)) return false;
+                        restoredKeys.add(key);
+                        return true;
+                    }).map(item => ({ challengeId: item.challengeId, nickname: item.nickname, mission: item.mission }));
                 }
+                currentCompletedMissions = new Set();
                 if (Array.isArray(parsed.completedMissions)) {
-                    currentCompletedMissions = new Set(parsed.completedMissions);
-                } else {
-                    currentCompletedMissions = new Set();
+                    parsed.completedMissions.forEach(mission => {
+                        if (isValidMission(mission) && !hasCompletedTrack(mission)) addCompletedMission(mission);
+                    });
                 }
-
-                // 구 V2 데이터 호환: currentChallengeId와 일치하는 queue 속 유효 미션을 완료 집합에 병합
                 if (currentChallengeId && Array.isArray(syncQueue)) {
                     syncQueue.forEach(item => {
-                        if (item && item.challengeId === currentChallengeId && VALID_MISSIONS.includes(item.mission)) {
-                            currentCompletedMissions.add(item.mission);
+                        if (item.challengeId === currentChallengeId && !hasCompletedTrack(item.mission)) {
+                            addCompletedMission(item.mission);
                         }
                     });
                 }
-
-                if (parsed.confirmedScores && typeof parsed.confirmedScores === "object") {
-                    currentConfirmedScores = {
-                        baseScore: Number(parsed.confirmedScores.baseScore) || 0,
-                        bonusScore: Number(parsed.confirmedScores.bonusScore) || 0,
-                        totalScore: Number(parsed.confirmedScores.totalScore) || 0
-                    };
-                }
+                currentConfirmedScores = normalizeScores(parsed.confirmedScores) || emptyScores();
+                if (currentConfirmedScores.bodyBonusScore > 0) addCompletedMission(bodyMissionForScore(currentConfirmedScores.bodyBonusScore));
             }
         } catch (e) {
             console.warn("localStorage 복구 실패:", e);
@@ -488,54 +551,21 @@
             const query = `action=check&challengeId=${encodeURIComponent(targetChallengeId)}&mission=${encodeURIComponent(targetMission)}`;
             const checkRes = await executeJSONP(query);
 
-            // 1. 기본 영수증 필드 검증
-            const basicMatch = checkRes &&
-                checkRes.status === "success" &&
-                checkRes.challengeId === targetChallengeId &&
-                checkRes.mission === targetMission &&
-                checkRes.saved === true &&
-                Array.isArray(checkRes.completedMissions) &&
-                checkRes.completedMissions.includes(targetMission);
+            const confirmedScores = validateReceipt(checkRes, targetChallengeId, targetMission);
 
-            // 2. 점수 유한정수, 배수, 범위 및 합산 일치 정밀 검증
-            let scoreValid = false;
-            if (basicMatch &&
-                typeof checkRes.baseScore === "number" && Number.isFinite(checkRes.baseScore) && Number.isInteger(checkRes.baseScore) &&
-                typeof checkRes.bonusScore === "number" && Number.isFinite(checkRes.bonusScore) && Number.isInteger(checkRes.bonusScore) &&
-                typeof checkRes.totalScore === "number" && Number.isFinite(checkRes.totalScore) && Number.isInteger(checkRes.totalScore)) {
-
-                const b = checkRes.baseScore;
-                const bn = checkRes.bonusScore;
-                const t = checkRes.totalScore;
-
-                const baseOk = (b >= 0 && b <= 700 && b % 100 === 0);
-                const bonusMaxAllowed = (b / 100) * 30;
-                const bonusOk = (bn >= 0 && bn <= 210 && bn % 10 === 0 && bn <= bonusMaxAllowed);
-                const totalOk = (t >= 0 && t <= 910 && t === (b + bn));
-
-                scoreValid = baseOk && bonusOk && totalOk;
-            }
-
-            const isSaved = basicMatch && scoreValid;
-
-            if (isSaved) {
-                // 일치하는 항목만 큐에서 안전하게 제거
-                const removeIndex = syncQueue.findIndex(
-                    item => item.challengeId === targetChallengeId && item.mission === targetMission
-                );
-                if (removeIndex !== -1) {
-                    syncQueue.splice(removeIndex, 1);
-                }
+            if (confirmedScores) {
+                // Remove only the captured challenge/track. All three body grades are one track.
+                syncQueue = syncQueue.filter(item => !(item.challengeId === targetChallengeId && sameMissionTrack(item.mission, targetMission)));
 
                 // 현재 도전의 영수증인 경우에만 점수 갱신 및 커스텀 이벤트 발송
                 if (targetChallengeId === currentChallengeId) {
-                    if (checkRes.baseScore >= currentConfirmedScores.baseScore) {
-                        currentConfirmedScores = {
-                            baseScore: checkRes.baseScore,
-                            bonusScore: checkRes.bonusScore,
-                            totalScore: checkRes.totalScore
-                        };
+                    if (confirmedScores.baseScore >= currentConfirmedScores.baseScore &&
+                        confirmedScores.eventBonusScore >= currentConfirmedScores.eventBonusScore &&
+                        confirmedScores.bodyBonusScore >= currentConfirmedScores.bodyBonusScore) {
+                        currentConfirmedScores = confirmedScores;
                     }
+                    checkRes.completedMissions.filter(mission => VALID_MISSIONS.includes(mission)).forEach(addCompletedMission);
+                    if (currentConfirmedScores.bodyBonusScore > 0) addCompletedMission(bodyMissionForScore(currentConfirmedScores.bodyBonusScore));
                     saveStorageState();
 
                     window.dispatchEvent(new CustomEvent("pose-sheet-saved", {
@@ -543,6 +573,8 @@
                             challengeId: currentChallengeId,
                             baseScore: currentConfirmedScores.baseScore,
                             bonusScore: currentConfirmedScores.bonusScore,
+                            eventBonusScore: currentConfirmedScores.eventBonusScore,
+                            bodyBonusScore: currentConfirmedScores.bodyBonusScore,
                             totalScore: currentConfirmedScores.totalScore
                         }
                     }));
@@ -550,7 +582,8 @@
                     saveStorageState();
                 }
 
-                updateSyncStatusUI(`'${targetMission}' 시트 저장 완료! (+100점)`, true);
+                const savedLabel = isBodyMission(targetMission) ? `전신 보너스 ${confirmedScores.bodyBonusScore}점` : `${targetMission} (+100점)`;
+                updateSyncStatusUI(`'${savedLabel}' 시트 저장 완료!`, true);
 
                 if (currentScreen !== "game") {
                     stopLeaderboard();
@@ -605,7 +638,7 @@
             currentChallengeId = generateUUID();
             currentNickname = nickname;
             currentCompletedMissions = new Set();
-            currentConfirmedScores = { baseScore: 0, bonusScore: 0, totalScore: 0 };
+            currentConfirmedScores = emptyScores();
             saveStorageState();
 
             injectUI();
@@ -632,22 +665,26 @@
             }
 
             const mission = String(missionName || "").trim();
-            if (!VALID_MISSIONS.includes(mission)) {
+            if (!isValidMission(mission)) {
                 console.error("유효하지 않은 미션 이름입니다:", mission);
                 return { bonus: 0 };
             }
 
             // 현재 도전에서 이미 완료 처리된 미션인 경우 보너스 0 반환 및 재전송 차단 (큐 제거 이후라도 유지)
-            if (currentCompletedMissions.has(mission)) {
+            if (hasCompletedTrack(mission)) {
                 return { bonus: 0 };
             }
-            currentCompletedMissions.add(mission);
+            if (isBodyMission(mission) && currentConfirmedScores.baseScore !== 700 && !VALID_MISSIONS.every(name => currentCompletedMissions.has(name))) {
+                console.error("전신 보너스는 기본 7개 미션을 모두 마친 뒤에만 보낼 수 있습니다.");
+                return { bonus: 0 };
+            }
+            addCompletedMission(mission);
 
-            const bonusVal = calculatePredictedBonus(currentChallengeId, mission);
+            const bonusVal = isBodyMission(mission) ? bodyGrade(mission) : calculatePredictedBonus(currentChallengeId, mission);
 
             // 중복 큐 진입 방지 후 3필드 추가
             const alreadyInQueue = syncQueue.some(
-                item => item.challengeId === currentChallengeId && item.mission === mission
+                item => item.challengeId === currentChallengeId && sameMissionTrack(item.mission, mission)
             );
             if (!alreadyInQueue) {
                 syncQueue.push({
@@ -687,6 +724,8 @@
                 pending: pendingCount,
                 baseScore: currentConfirmedScores.baseScore,
                 bonusScore: currentConfirmedScores.bonusScore,
+                eventBonusScore: currentConfirmedScores.eventBonusScore,
+                bodyBonusScore: currentConfirmedScores.bodyBonusScore,
                 totalScore: currentConfirmedScores.totalScore
             };
         },
