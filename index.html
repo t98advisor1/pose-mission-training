@@ -2,334 +2,583 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>선생님 포즈 게임</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        body {
-            font-family: 'Jua', sans-serif;
-            background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            color: #374151;
-        }
+:root {
+    --primary: #f97316;
+    --primary-hover: #ea580c;
+    --primary-light: #ffedd5;
+    --bg-gradient: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+    --text-main: #374151;
+    --text-muted: #6b7280;
+}
 
-        .app-card {
-            background-color: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border-radius: 2.5rem;
-            width: 100%;
-            max-width: 480px;
-            height: 780px;
-            max-height: 94vh;
-            position: relative;
-            border: 4px solid #ffffff;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    font-family: 'Jua', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-main);
+}
 
-        .screen {
-            flex: 1;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px 18px 12px 18px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+/* 메인 뷰포트 컨테이너 (100dvh 전체 활용) */
+.app-viewport {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
 
-        .screen.active {
-            display: flex;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .floating {
-            animation: float 2.5s ease-in-out infinite;
-        }
-
-        .app-title {
-            color: #f97316;
-            font-size: 2.25rem;
-            line-height: 1.2;
-            text-align: center;
-            margin-bottom: 12px;
-            text-shadow: 1px 1px 0 #fff;
-        }
-
-        .subtitle {
-            color: #4b5563;
-            font-size: 1rem;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            width: 100%;
-            max-width: 320px;
-            margin-bottom: 20px;
-        }
-
-        .text-input {
-            width: 100%;
-            padding: 12px 18px;
-            border-radius: 9999px;
-            border: 2px solid #fed7aa;
-            outline: none;
-            font-size: 1.1rem;
-            font-family: inherit;
-            text-align: center;
-            background: #fff;
-            transition: border-color 0.2s;
-        }
-
-        .text-input:focus {
-            border-color: #f97316;
-        }
-
-        .btn {
-            font-family: inherit;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 9999px;
-            padding: 10px 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn:active:not(:disabled) {
-            transform: scale(0.96);
-        }
-
-        .btn-primary {
-            background-color: #fb923c;
-            color: #ffffff;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background-color: #f97316;
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: #ffffff;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background-color: #dc2626;
-        }
-
-        .btn-secondary {
-            background-color: #9ca3af;
-            color: #ffffff;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background-color: #6b7280;
-        }
-
-        .mission-header {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .badge-tag {
-            font-size: 0.9rem;
-            background: #ffedd5;
-            color: #ea580c;
-            padding: 4px 10px;
-            border-radius: 9999px;
-        }
-
-        .score-tag {
-            font-size: 1.05rem;
-            font-weight: bold;
-            color: #ea580c;
-        }
-
-        .mission-title {
-            font-size: 1.4rem;
-            color: #c2410c;
-            text-align: center;
-            margin-bottom: 6px;
-        }
-
-        .pose-example-card {
-            width: 100%;
-            max-width: 380px;
-            background: #fff;
-            border-radius: 1.25rem;
-            padding: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 2px solid #ffedd5;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-
-        .badge {
-            display: inline-block;
-            font-size: 0.75rem;
-            color: #ea580c;
-            background: #fff7ed;
-            border: 1px solid #fdba74;
-            padding: 2px 8px;
-            border-radius: 6px;
-            margin-bottom: 4px;
-        }
-
-        .example-image-box {
-            width: 100%;
-            height: 120px;
-            background: #f8fafc;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .example-image-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .webcam-container {
-            width: 100%;
-            max-width: 380px;
-            height: 180px;
-            background-color: #111827;
-            border-radius: 1.25rem;
-            overflow: hidden;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
-            margin-bottom: 8px;
-        }
-
-        .webcam-feed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            display: none;
-        }
-
-        .webcam-placeholder {
-            color: #9ca3af;
-            font-size: 0.85rem;
-            text-align: center;
-            padding: 12px;
-            white-space: pre-line;
-        }
-
-        .progress-box {
-            width: 100%;
-            max-width: 380px;
-            margin-bottom: 8px;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-bottom: 3px;
-        }
-
-        .progress-bar-bg {
-            width: 100%;
-            height: 12px;
-            background: #e5e7eb;
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #f97316, #22c55e);
-            transition: width 0.05s linear;
-        }
-
-        .status-banner {
-            font-size: 0.85rem;
-            color: #4b5563;
-            min-height: 20px;
-            text-align: center;
-            margin-bottom: 8px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 6px;
-            width: 100%;
-            max-width: 380px;
-            justify-content: center;
-            margin-bottom: 6px;
-        }
-
-        .footer {
-            padding: 10px 16px;
-            background-color: #fff7ed;
-            border-top: 1px solid #ffedd5;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #9a3412;
-            flex-shrink: 0;
-        }
-    /* 화면 내부 스크롤 보장 및 요소 찌그러짐 방지 */
+/* 공통 화면 레이아웃 */
 .screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
     min-height: 0;
+    position: relative;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* 1. 시작 화면 & 3. 결과 화면 (스크롤 카드 뷰) */
+.scroll-screen-content {
+    flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    gap: 16px;
 }
 
-.screen > * {
+.card-panel {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 2rem;
+    padding: 24px 20px;
+    box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 3px solid #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* 2. 게임 화면: 카메라가 남은 공간을 최대로 채우는 꽉 찬 구조 */
+#game-screen {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+/* 상단 정보 바 (컴팩트 헤더) */
+.game-compact-header {
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 20;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.step-chip {
+    background: #f97316;
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+}
+
+.score-display-group {
+    display: flex;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.score-base-chip {
+    color: #fdba74;
+}
+
+.score-bonus-chip {
+    color: #4ade80;
+}
+
+.pose-brief-title {
+    font-size: 1.35rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pose-brief-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 비전 뷰포트 (남은 공간 전체 점유 및 Contain 정렬) */
+.vision-stage {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    position: relative;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.vision-feed,
+.vision-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scaleX(-1); /* 거울 모드 일치 */
+}
+
+.vision-canvas {
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 전체 화면 포즈 사진 1초 예고 Overlay */
+.pose-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.94);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 30;
+    text-align: center;
+}
+
+.pose-preview-overlay.active {
+    display: flex;
+}
+
+.preview-image-frame {
+    max-width: 90%;
+    max-height: 60vh;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border: 4px solid #f97316;
+    background: #ffffff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-image-frame img {
+    width: 100%;
+    height: 100%;
+    max-height: 58vh;
+    object-fit: contain;
+    display: block;
+}
+
+.preview-badge {
+    background: #ea580c;
+    color: #ffffff;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    margin-bottom: 8px;
+}
+
+.preview-caption {
+    color: #f8fafc;
+    font-size: 1.25rem;
+}
+
+/* 비전 뷰 상태 배너 & 축하 이펙트 */
+.vision-hud-banner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f8fafc;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 0.9rem;
+    z-index: 15;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.vision-hud-banner.success {
+    background: rgba(22, 163, 74, 0.95);
+    border-color: #4ade80;
+    color: #ffffff;
+    transform: translateX(-50%) scale(1.08);
+}
+
+.toast-bonus-popup {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 2rem;
+    font-size: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border: 3px solid #ffffff;
+    pointer-events: none;
+    z-index: 40;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-bonus-popup.pop {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* 하단 씬: 얇은 2초 게이지 및 컴팩트 조작 바 */
+.game-bottom-deck {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px 12px 16px;
+    gap: 8px;
+    z-index: 20;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-track-slim {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #f97316 0%, #22c55e 100%);
+    transition: width 0.05s linear;
+}
+
+.hold-numeric-label {
+    position: absolute;
+    right: 0;
+    top: -16px;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+}
+
+.game-action-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 10px;
+    border-radius: 9999px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.toolbar-btn:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-btn.btn-danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+/* 타이포그래피 & 공용 버튼 */
+.brand-title {
+    color: var(--primary);
+    font-size: 2.25rem;
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+
+.brand-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.input-box-wrapper {
+    width: 100%;
+    max-width: 320px;
+    margin: 12px 0 6px 0;
+}
+
+.text-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 9999px;
+    border: 2px solid #fed7aa;
+    outline: none;
+    font-family: inherit;
+    font-size: 1.1rem;
+    text-align: center;
+    background: #ffffff;
+    transition: border-color 0.2s;
+}
+
+.text-input:focus {
+    border-color: var(--primary);
+}
+
+.btn-cta {
+    width: 100%;
+    max-width: 320px;
+    padding: 14px 28px;
+    border-radius: 9999px;
+    border: none;
+    background: var(--primary);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-cta:hover {
+    background: var(--primary-hover);
+}
+
+.btn-cta:active {
+    transform: scale(0.97);
+}
+
+/* 랭킹 및 동기화 상태 컨테이너 마운트 */
+.sync-badge-box {
+    font-size: 0.8rem;
+    color: #ea580c;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    margin-top: 6px;
+}
+
+.leaderboard-mount-box {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 14px;
+    border: 2px solid #ffedd5;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* 푸터 (전체 고정) */
+.global-footer {
+    padding: 10px 16px;
+    background: #fff7ed;
+    border-top: 1px solid #ffedd5;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #9a3412;
+    flex-shrink: 0;
+    z-index: 25;
+}
+
+#game-screen .global-footer {
+    background: #0b1120;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+/* 하위 호환성 전용 숨김 요소 */
+.legacy-hidden-element {
+    display: none !important;
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+/* ==========================================================================
+   모바일 최적화 및 뷰포트 맞춤 반응형 추가 스타일
+   ========================================================================== */
+
+/* 1. 상단 헤더: flex-wrap 적용 및 긴 닉네임 ellipsis 생략 처리 */
+.header-top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+#player-tag {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.game-compact-header > div:last-child {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pose-brief-title {
     flex-shrink: 0;
 }
 
-.webcam-container {
-    min-height: 180px;
+.pose-brief-desc {
+    white-space: normal !important;
+    word-break: keep-all;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 100%;
+}
+
+/* 2. 진행 바: 16px 높이 내부에 숫자 텍스트를 우측에 겹쳐 표시 */
+.progress-track-slim {
+    height: 16px !important;
+    position: relative;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hold-numeric-label {
+    top: 50% !important;
+    right: 8px !important;
+    transform: translateY(-50%) !important;
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+    font-weight: bold;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 3. 1초 예고 프레임: 화면 크기에 맞춰 꽉 차게 확장 */
+.pose-preview-overlay {
+    padding: 8px !important;
+}
+
+.preview-badge,
+.preview-caption {
     flex-shrink: 0;
 }
 
-.pose-example-card,
-.progress-box,
-.status-banner,
-.controls,
-#sync-dashboard-container {
-    flex-shrink: 0;
+.preview-image-frame {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: min(100%, 720px) !important;
+    margin-bottom: 8px !important;
+}
+
+.preview-image-frame img {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+}
+
+/* 4. HUD 텍스트 배너 및 보너스 팝업 반응형 줄바꿈 */
+.vision-hud-banner {
+    max-width: calc(100% - 24px) !important;
+    white-space: normal !important;
+    text-align: center !important;
+    line-height: 1.3;
+}
+
+.toast-bonus-popup {
+    max-width: calc(100% - 32px);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* 5. Safe Area 및 소형 가로 모드(height 480px 이하) 패딩 최적화 */
+.app-viewport {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-height: 480px) {
+    .game-compact-header {
+        padding: 4px 8px !important;
+    }
+    .game-bottom-deck {
+        padding: 4px 8px 6px 8px !important;
+    }
+    .global-footer {
+        padding: 4px 8px !important;
+        font-size: 0.65rem !important;
+    }
 }
 </style>
 
@@ -347,75 +596,156 @@
     </script>
 </head>
 <body>
+<div class="app-viewport">
 
-    <div class="app-card">
-        <!-- 시작 화면 -->
-        <div id="start-screen" class="screen active">
-            <div style="font-size: 4rem; margin-top: 24px; margin-bottom: 12px;" class="floating">👩‍🏫📸👨‍🏫</div>
-            <h1 class="app-title">선생님<br>포즈 게임</h1>
-            <p class="subtitle">AI 비전과 함께 7가지 포즈에 도전해 보세요!</p>
-            
-            <div class="input-group">
-                <input type="text" id="nickname-input" class="text-input" placeholder="도전자 닉네임을 입력하세요" maxlength="12">
+    <!-- 1. 시작 화면 -->
+    <div id="start-screen" class="screen active">
+        <div class="scroll-screen-content">
+            <div class="card-panel">
+                <div style="font-size: 3.8rem; margin-bottom: 6px;">👩‍🏫📸👨‍🏫</div>
+                <h1 class="brand-title">선생님<br>포즈 게임</h1>
+                <p class="brand-desc">
+                    카메라 앞에서 신나게 포즈를 맞추고<br>
+                    <strong>기본 700점 + 깜짝 이벤트 보너스</strong>에 도전하세요!
+                </p>
+
+                <div class="input-box-wrapper">
+                    <input type="text" id="nickname-input" class="text-input" placeholder="선생님 닉네임을 입력하세요" maxlength="12">
+                </div>
+
+                <button id="start-btn" class="btn-cta" style="margin-bottom: 10px;">게임 시작하기</button>
+
+                <p style="font-size: 0.75rem; color: #9ca3af; line-height: 1.3;">
+                    * 카메라 영상, 사진 및 신체 좌표는 기기 밖으로 절대 전송되거나 저장되지 않습니다.
+                </p>
+                <div id="game-sync-status" class="sync-badge-box">점수 서버 준비 완료</div>
             </div>
 
-            <button id="start-btn" class="btn btn-primary" style="width: 100%; max-width: 280px; margin-bottom: 12px;">게임 시작하기</button>
-            <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
-                * 카메라 영상과 신체 좌표는 기기 내부에서만 처리되며 외부로 저장·전송되지 않습니다.
-            </p>
+            <!-- 시작 화면 전용 랭킹 마운트 -->
+            <div id="leaderboard-home" class="leaderboard-mount-box"></div>
         </div>
-
-        <!-- 게임 화면 -->
-        <div id="game-screen" class="screen">
-            <div class="mission-header">
-                <span id="player-tag" class="badge-tag">도전자: 선생님</span>
-                <span id="step-badge" class="badge-tag">1 / 7</span>
-                <span id="score-text" class="score-tag">0 / 700점</span>
-            </div>
-
-            <h2 id="pose-title" class="mission-title">큰 V</h2>
-
-            <div class="pose-example-card">
-                <div class="badge">AI 생성 포즈 예시</div>
-                <div class="example-image-box">
-                    <img id="pose-img" src="" alt="포즈 예시 이미지">
-                </div>
-            </div>
-
-            <div class="webcam-container">
-                <video id="webcam" autoplay playsinline muted class="webcam-feed"></video>
-                <div id="cam-status" class="webcam-placeholder">카메라를 켜주세요.</div>
-            </div>
-
-            <div class="progress-box">
-                <div class="progress-header">
-                    <span>자세 유지 (2초)</span>
-                    <span id="hold-text">0.0초</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div id="progress-fill" class="progress-bar-fill"></div>
-                </div>
-            </div>
-
-            <div id="status-banner" class="status-banner">카메라 시작 버튼을 눌러주세요.</div>
-
-            <div class="controls">
-                <button id="cam-start-btn" class="btn btn-primary">카메라 시작</button>
-                <button id="cam-stop-btn" class="btn btn-danger" disabled>카메라 종료</button>
-            </div>
-            <div class="controls">
-                <button id="prev-btn" class="btn btn-secondary">이전</button>
-                <button id="next-btn" class="btn btn-primary">다음 포즈</button>
-            </div>
-        </div>
-
-        <footer class="footer">
+        <footer class="global-footer">
             교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
-    <script src="./sheets-sync.js"></script>
-<script>// 7가지 포즈 목록 및 모드 정의
+    <!-- 2. 게임 화면 -->
+    <div id="game-screen" class="screen">
+        <!-- 상단 헤더 -->
+        <div class="game-compact-header">
+            <div class="header-top-row">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span id="player-tag" style="color: #cbd5e1; font-size: 0.85rem;">도전자: -</span>
+                    <span id="step-badge" class="step-chip">1 / 7</span>
+                </div>
+                <div class="score-display-group">
+                    <span id="score-text" class="score-base-chip">0점</span>
+                    <span id="bonus-score-text" class="score-bonus-chip">+0</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                <div id="pose-title" class="pose-brief-title">큰 V 🙆‍♂️</div>
+                <div id="pose-desc" class="pose-brief-desc">두 팔을 머리 위로 시원하게 뻗어 V자를 만드세요!</div>
+            </div>
+        </div>
+
+        <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 1초 예고) -->
+        <div id="vision-stage" class="vision-stage">
+            <video id="webcam" class="vision-feed" autoplay playsinline muted></video>
+            <canvas id="pose-overlay" class="vision-canvas"></canvas>
+
+            <div id="cam-status" style="position: absolute; color: #94a3b8; font-size: 0.9rem; text-align: center; padding: 16px;">
+                카메라 준비 중입니다...
+            </div>
+
+            <!-- 비전 헤드업 텍스트 배너 -->
+            <div id="status-banner" class="vision-hud-banner">준비 중...</div>
+
+            <!-- 깜짝 보너스 팝업 -->
+            <div id="bonus-toast" class="toast-bonus-popup">보너스 +20점! ✨</div>
+
+            <!-- 포즈 사진 1초 전체 예고 오버레이 -->
+            <div id="preview-overlay" class="pose-preview-overlay">
+                <div class="preview-badge">AI 생성 포즈 예시</div>
+                <div class="preview-image-frame">
+                    <img id="pose-img" src="" alt="포즈 예시 사진">
+                </div>
+                <div id="preview-caption" class="preview-caption">잠시 후 카메라가 시작됩니다!</div>
+            </div>
+        </div>
+
+        <!-- 하단 조작 바 & 얇은 2초 게이지 -->
+        <div class="game-bottom-deck">
+<div id="game-save-status" role="status" style="font-size:.72rem;text-align:center"></div>
+            <div class="progress-track-slim">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+                <span id="hold-text" class="hold-numeric-label">0.0s</span>
+            </div>
+
+            <div class="game-action-toolbar">
+                <button id="pause-resume-btn" class="toolbar-btn">⏸️ 일시정지</button>
+                <button id="replay-photo-btn" class="toolbar-btn">🖼️ 사진 다시보기</button>
+                <button id="decor-toggle" class="toolbar-btn" aria-pressed="true">🍓 장식 켜짐</button>
+                <button id="exit-game-btn" class="toolbar-btn btn-danger">⏹️ 게임 종료</button>
+            </div>
+        </div>
+
+        <footer class="global-footer">
+            교사와 학부모를 위한 바이브 코딩 All rights reserved
+        </footer>
+    </div>
+
+    <!-- 3. 결과 화면 -->
+    <div id="result-screen" class="screen">
+        <div class="scroll-screen-content">
+            <div class="card-panel">
+                <div style="font-size: 3.5rem; margin-bottom: 4px;">🎉👑🎊</div>
+                <h2 style="font-size: 2rem; color: #f97316; margin-bottom: 6px;">미션 완료!</h2>
+                <p id="result-user-summary" style="font-size: 1rem; color: #4b5563; margin-bottom: 12px;">선생님, 7개 포즈를 모두 완수했습니다!</p>
+
+                <!-- 점수 상세 패널 -->
+                <div style="width: 100%; background: #fff7ed; border: 2px solid #fed7aa; border-radius: 1.25rem; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #4b5563;">
+                        <span>기본 점수 (100점 × 7)</span>
+                        <strong id="result-base-score" style="color: #c2410c;">700점</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #4b5563;">
+                        <span>이벤트 보너스 점수</span>
+                        <strong id="result-bonus-score" style="color: #16a34a;">+0점</strong>
+                    </div>
+                    <div style="height: 1px; background: #fed7aa;"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: #ea580c;">
+                        <span>최종 합계 점수</span>
+                        <span id="result-total-score">700점</span>
+                    </div>
+                </div>
+
+                <div id="result-sync-status" class="sync-badge-box" style="margin-bottom: 16px;">점수 저장 확인 중...</div>
+
+                <button id="retry-btn" class="btn-cta">다시 도전하기 🔄</button>
+            </div>
+
+            <!-- 결과 화면 전용 랭킹 마운트 -->
+            <div id="leaderboard-result" class="leaderboard-mount-box"></div>
+        </div>
+        <footer class="global-footer">
+            교사와 학부모를 위한 바이브 코딩 All rights reserved
+        </footer>
+    </div>
+
+    <!-- 기존 참조 호환용 숨김 엘리먼트 (스크립트 오류 방지용) -->
+    <div class="legacy-hidden-element">
+        <button id="cam-start-btn"></button>
+        <button id="cam-stop-btn"></button>
+        <button id="prev-btn"></button>
+        <button id="next-btn"></button>
+    </div>
+
+</div>
+
+<script src="./sheets-sync.js?v=20261009-21"></script>
+<script>
+// 7가지 포즈 목록 및 모드 정의
 const poses = [
     { id: "big_v", name: "큰 V", src: "photos/big-v-v2.png", type: "pose" },
     { id: "heart", name: "머리 위 하트", src: "photos/heart-v2.png", type: "pose" },
@@ -467,26 +797,6 @@ const camStartBtn = document.getElementById('cam-start-btn');
 const camStopBtn = document.getElementById('cam-stop-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
-
-// 유지 시간 및 프로그레스바 초기화
-function resetHoldTimer(reasonMsg = null) {
-    accumulatedHoldMs = 0;
-    lastFrameTimestamp = null;
-    progressFill.style.width = '0%';
-    holdText.innerText = '0.0초';
-    if (reasonMsg && !clearedPoses[currentPoseIndex]) {
-        statusBanner.innerText = reasonMsg;
-    }
-}
-
-// 탭 이탈(hidden) 및 pagehide 감지 처리
-function handleAppDeactivation() {
-    resetHoldTimer("화면을 벗어나 유지가 초기화되었습니다.");
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-    }
-}
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -787,105 +1097,6 @@ function checkPoseMatches(targetId, lm, gestureResults) {
     }
 }
 
-// 실시간 비전 추론 루프
-async function predictWebcam() {
-    if (!localStream || webcam.paused || webcam.ended) {
-        return;
-    }
-
-    const now = performance.now();
-
-    // 250ms 초과 프레임 공백 감지 시 누적 유지시간 0으로 즉시 초기화
-    if (lastFrameTimestamp !== null) {
-        const frameGap = now - lastFrameTimestamp;
-        if (frameGap > MAX_DELTA_TOLERANCE_MS) {
-            resetHoldTimer("프레임 지연으로 유지가 초기화되었습니다.");
-        }
-    }
-
-    if (webcam.currentTime !== lastVideoTime && poseLandmarker && gestureRecognizer) {
-        lastVideoTime = webcam.currentTime;
-        const currentMission = poses[currentPoseIndex];
-        let isMatched = false;
-
-        try {
-            let poseResults = null;
-            let gestureResults = null;
-
-            if (currentMission.type === "pose" || currentMission.type === "hybrid") {
-                poseResults = poseLandmarker.detectForVideo(webcam, now);
-            }
-            if (currentMission.type === "gesture" || currentMission.type === "hybrid") {
-                gestureResults = gestureRecognizer.recognizeForVideo(webcam, now);
-            }
-
-            if (currentMission.type === "pose") {
-                if (poseResults && poseResults.landmarks && poseResults.landmarks.length > 0) {
-                    isMatched = checkPoseMatches(currentMission.id, poseResults.landmarks[0], null);
-                    if (!isMatched) {
-                        statusBanner.innerText = "포즈 일치 대기 중...";
-                    }
-                } else {
-                    resetHoldTimer("사람이 감지되지 않거나 관절이 명확하지 않습니다.");
-                }
-            } else if (currentMission.type === "gesture") {
-                isMatched = checkGestureMatches(currentMission.gesture, gestureResults);
-                if (!isMatched) {
-                    statusBanner.innerText = `${currentMission.name} 손동작을 명확히 보여주세요.`;
-                }
-            } else if (currentMission.type === "hybrid") {
-                if (poseResults && poseResults.landmarks && poseResults.landmarks.length > 0) {
-                    isMatched = checkPoseMatches(currentMission.id, poseResults.landmarks[0], gestureResults);
-                    if (!isMatched) {
-                        statusBanner.innerText = "양손을 펴 얼굴 옆에 꽃받침을 만들어 주세요.";
-                    }
-                } else {
-                    resetHoldTimer("사람이 감지되지 않거나 관절이 명확하지 않습니다.");
-                }
-            }
-
-            // 자세 매칭 여부에 따른 2초 누적 연산
-            if (isMatched) {
-                if (lastFrameTimestamp !== null) {
-                    const delta = now - lastFrameTimestamp;
-                    if (delta > 0 && delta <= MAX_DELTA_TOLERANCE_MS) {
-                        accumulatedHoldMs += delta;
-                    }
-                }
-                lastFrameTimestamp = now;
-
-                const progressRatio = Math.min(accumulatedHoldMs / REQUIRED_HOLD_MS, 1.0);
-                progressFill.style.width = `${(progressRatio * 100).toFixed(0)}%`;
-                holdText.innerText = `${(accumulatedHoldMs / 1000).toFixed(1)}초`;
-                statusBanner.innerText = "✨ 자세 유지 중! 조금만 더 유지해 주세요!";
-
-                if (accumulatedHoldMs >= REQUIRED_HOLD_MS) {
-                    if (!clearedPoses[currentPoseIndex]) {
-                        clearedPoses[currentPoseIndex] = true;
-                        totalScore += 100;
-                        window.PoseSheet.complete(currentMission.name);
-                        scoreText.innerText = `${totalScore} / 700점`;
-                        statusBanner.innerText = `🎉 성공! 100점을 획득했습니다! (현재 ${totalScore}점)`;
-                    } else {
-                        statusBanner.innerText = "이미 완료한 미션입니다! 다음 포즈로 넘어가 보세요.";
-                    }
-                }
-            } else {
-                if (accumulatedHoldMs > 0) {
-                    resetHoldTimer("자세가 흐트러졌습니다. 다시 유지해 주세요!");
-                } else {
-                    lastFrameTimestamp = null;
-                }
-            }
-        } catch (inferError) {
-            console.error("추론 중 예외 발생:", inferError);
-            resetHoldTimer("인식 오류가 발생하여 유지가 초기화되었습니다.");
-        }
-    }
-
-    animationFrameId = requestAnimationFrame(predictWebcam);
-}
-
 // 카메라 시작: 세대 번호 토큰 검증 및 모델 성공 후 getUserMedia 요청
 // 카메라 라이프사이클 및 대기 취소 관리를 위한 상태 변수
 let cameraGeneration = 0;
@@ -931,7 +1142,12 @@ async function startCamera() {
         }
 
         requestStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+            video: {
+    width: { ideal: window.innerWidth > window.innerHeight ? 1280 : 720 },
+    height: { ideal: window.innerWidth > window.innerHeight ? 720 : 1280 },
+    aspectRatio: { ideal: window.innerWidth > window.innerHeight ? (16 / 9) : (9 / 16) },
+    facingMode: "user"
+},
             audio: false
         });
 
@@ -1083,77 +1299,11 @@ function stopCamera() {
     resetHoldTimer("카메라가 종료되었습니다.");
 }
 
-// 포즈 뷰 렌더링
-function renderPoseView(index) {
-    const pose = poses[index];
-    stepBadge.innerText = `${index + 1} / ${poses.length}`;
-    poseTitle.innerText = pose.name;
-    poseImg.src = pose.src;
-    poseImg.alt = `${pose.name} 예시 이미지`;
-
-    resetHoldTimer();
-    if (clearedPoses[index]) {
-        statusBanner.innerText = "✅ 이미 성공한 미션입니다! (+100점 완료)";
-    } else {
-        statusBanner.innerText = "2초 동안 정확한 자세를 유지해 보세요!";
-    }
-
-    prevBtn.style.visibility = (index === 0) ? 'hidden' : 'visible';
-    nextBtn.innerText = (index === poses.length - 1) ? '처음으로' : '다음 포즈';
-}
-
-// 새 게임 시작: 모든 점수와 완료 배열 완전 초기화
-startBtn.addEventListener('click', () => {
-    // 기본값('선생님')으로 자동 대체하지 않고 원본 입력값을 그대로 전달
-    const rawNickname = nicknameInput.value.trim();
-
-    try {
-        // 빈 문자열, 12자 초과, 수식 기호 입력 시 PoseSheet.begin 내부에서 throw 발생
-        const session = window.PoseSheet.begin(rawNickname);
-        playerTag.innerText = `도전자: ${session.nickname}`;
-    } catch (validationErr) {
-        alert(validationErr.message);
-        nicknameInput.focus();
-        return;
-    }
-
-    // 게임 상태 및 UI 초기화
-    clearedPoses = new Array(poses.length).fill(false);
-    totalScore = 0;
-    scoreText.innerText = `0 / 700점`;
-    currentPoseIndex = 0;
-
-    startScreen.classList.remove('active');
-    gameScreen.classList.add('active');
-
-    renderPoseView(currentPoseIndex);
-});
-
-// 버튼 이벤트 리스너
-camStartBtn.addEventListener('click', startCamera);
-camStopBtn.addEventListener('click', stopCamera);
-
-prevBtn.addEventListener('click', () => {
-    if (currentPoseIndex > 0) {
-        currentPoseIndex--;
-        renderPoseView(currentPoseIndex);
-    }
-});
-
-nextBtn.addEventListener('click', () => {
-    if (currentPoseIndex < poses.length - 1) {
-        currentPoseIndex++;
-        renderPoseView(currentPoseIndex);
-    } else {
-        stopCamera();
-        gameScreen.classList.remove('active');
-        startScreen.classList.add('active');
-    }
-});
-
 // ESM 모듈 로드 알림 수신 시 모델 사전 로드 시도
 window.addEventListener('mediapipe-ready', () => {
     initAIModels();
-});</script>
+});
+</script>
+<script src="./experience.js?v=20261009-21"></script>
 </body>
 </html>

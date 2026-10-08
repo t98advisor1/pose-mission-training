@@ -1,5 +1,6 @@
 /**
  * sheets-sync.js - 선생님 포즈 게임 구글 시트 연동 및 랭킹 모듈
+ * (영수증 정밀 검증: base/bonus/total 범위·배수·합산 일치 검증, 구 V2 localStorage 완료 미션 마이그레이션 보존)
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -19,11 +20,16 @@
     const JSONP_TIMEOUT_MS = 8000;
     const QUEUE_RETRY_INTERVAL_MS = 4000;
 
+    // 현재 세션 상태
     let currentChallengeId = null;
     let currentNickname = null;
     let syncQueue = []; // [{ challengeId, nickname, mission }]
+    let currentCompletedMissions = new Set();
+    let currentConfirmedScores = { baseScore: 0, bonusScore: 0, totalScore: 0 };
+    let currentScreen = "start"; // "start" | "game" | "result"
     let isProcessingQueue = false;
 
+    // 랭킹 폴링 상태
     let leaderboardTimer = null;
     let leaderboardGeneration = 0;
     let activeLeaderboardCleanup = null;
@@ -31,23 +37,39 @@
     let lastSuccessfulRankTime = null;
     let cachedLeaderboardData = null;
 
+    // UUID v4 생성
     function generateUUID() {
         if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
             return crypto.randomUUID();
         }
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
             const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            const v = c === "x" ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
 
+    // 서버와 동일한 FNV-1a 32bit 보너스 해시 계산기
+    function calculatePredictedBonus(challengeId, mission) {
+        if (!challengeId || !mission) return 0;
+        const key = challengeId.trim().toLowerCase() + "|" + mission;
+        let h = 2166136261;
+        for (let i = 0; i < key.length; i++) {
+            const code = key.charCodeAt(i);
+            h = Math.imul(h ^ code, 16777619) >>> 0;
+        }
+        return (h % 4 === 0) ? (10 * ((h >>> 2) % 3 + 1)) : 0;
+    }
+
+    // localStorage 저장
     function saveStorageState() {
         try {
             const data = {
                 challengeId: currentChallengeId,
                 nickname: currentNickname,
-                queue: syncQueue
+                queue: syncQueue,
+                completedMissions: Array.from(currentCompletedMissions),
+                confirmedScores: currentConfirmedScores
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
@@ -55,6 +77,7 @@
         }
     }
 
+    // localStorage 복구 (구 V2 데이터: completedMissions가 없고 queue만 있는 경우 자동 병합 마이그레이션)
     function loadStorageState() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -66,29 +89,49 @@
                 if (Array.isArray(parsed.queue)) {
                     syncQueue = parsed.queue;
                 }
+                if (Array.isArray(parsed.completedMissions)) {
+                    currentCompletedMissions = new Set(parsed.completedMissions);
+                } else {
+                    currentCompletedMissions = new Set();
+                }
+
+                // 구 V2 데이터 호환: currentChallengeId와 일치하는 queue 속 유효 미션을 완료 집합에 병합
+                if (currentChallengeId && Array.isArray(syncQueue)) {
+                    syncQueue.forEach(item => {
+                        if (item && item.challengeId === currentChallengeId && VALID_MISSIONS.includes(item.mission)) {
+                            currentCompletedMissions.add(item.mission);
+                        }
+                    });
+                }
+
+                if (parsed.confirmedScores && typeof parsed.confirmedScores === "object") {
+                    currentConfirmedScores = {
+                        baseScore: Number(parsed.confirmedScores.baseScore) || 0,
+                        bonusScore: Number(parsed.confirmedScores.bonusScore) || 0,
+                        totalScore: Number(parsed.confirmedScores.totalScore) || 0
+                    };
+                }
             }
         } catch (e) {
             console.warn("localStorage 복구 실패:", e);
         }
     }
 
+    // 랭킹 대시보드 위젯 생성
     function injectUI() {
-        const statusBanner = document.getElementById("status-banner");
-        if (!statusBanner || document.getElementById("sync-dashboard-container")) return;
+        if (document.getElementById("sync-dashboard-container")) return;
 
         const container = document.createElement("div");
         container.id = "sync-dashboard-container";
         container.style.cssText = `
             width: 100%;
-            max-width: 380px;
             background: #ffffff;
             border-radius: 1rem;
             padding: 10px 12px;
-            margin-top: 8px;
-            margin-bottom: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             border: 1px solid #ffedd5;
             font-size: 0.85rem;
+            box-sizing: border-box;
         `;
 
         const syncStatusDiv = document.createElement("div");
@@ -99,7 +142,7 @@
 
         const rankingHeader = document.createElement("div");
         rankingHeader.style.cssText = "display: flex; justify-content: space-between; color: #7c2d12; font-weight: bold; border-bottom: 1px solid #fed7aa; padding-bottom: 4px; margin-bottom: 4px;";
-        
+
         const rankTitle = document.createElement("span");
         rankTitle.textContent = "🏆 실시간 명예의 전당 (Top 5)";
         const rankUpdated = document.createElement("span");
@@ -116,45 +159,100 @@
         listContainer.style.cssText = "display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto;";
         container.appendChild(listContainer);
 
-        statusBanner.parentNode.insertBefore(container, statusBanner.nextSibling);
+        const mountHome = document.getElementById("leaderboard-home");
+        if (mountHome) {
+            mountHome.appendChild(container);
+        } else {
+            document.body.appendChild(container);
+        }
     }
 
-    function updateSyncStatusUI(detailMsg = null, isSuccess = false) {
-        const elem = document.getElementById("sync-status-text");
-        if (!elem) return;
+    // 화면 전환에 따른 랭킹 위젯 이동
+    function mountLeaderboard(screenName) {
+        const dashboard = document.getElementById("sync-dashboard-container");
+        if (!dashboard) return;
 
-        if (!SHEETS_WEB_APP_URL) {
-            elem.textContent = "웹앱 URL 설정 대기 중 (전송 보류)";
-            elem.style.color = "#9ca3af";
-            return;
+        const mountHome = document.getElementById("leaderboard-home");
+        const mountResult = document.getElementById("leaderboard-result");
+
+        if (screenName === "start" || screenName === "game") {
+            if (mountHome && !mountHome.contains(dashboard)) {
+                mountHome.appendChild(dashboard);
+            }
+        } else if (screenName === "result") {
+            if (mountResult && !mountResult.contains(dashboard)) {
+                mountResult.appendChild(dashboard);
+            }
         }
+    }
 
-        const currentPending = syncQueue.filter(item => item.challengeId === currentChallengeId).length;
-        const pastPending = syncQueue.length - currentPending;
+    // 상태 안내 메시지 동기화
+    function updateSyncStatusUI(detailMsg = null, isSuccess = false) {
+        const syncStatusText = document.getElementById("sync-status-text");
+        const gameSyncStatus = document.getElementById("game-sync-status");
+        const gameSaveStatus = document.getElementById("game-save-status");
+        const resultSyncStatus = document.getElementById("result-sync-status");
 
         let statusText = detailMsg || "";
+
         if (!statusText) {
-            if (currentPending === 0 && pastPending === 0) {
-                statusText = "모든 점수가 서버에 안전하게 기록되었습니다.";
+            if (!SHEETS_WEB_APP_URL) {
+                statusText = "웹앱 URL 설정 대기 중 (전송 보류)";
             } else {
-                statusText = `저장 대기: 현재 도전 ${currentPending}건`;
-                if (pastPending > 0) {
-                    statusText += ` (이전 기록 ${pastPending}건 보류 중)`;
+                const currentPending = syncQueue.filter(item => item.challengeId === currentChallengeId).length;
+                const pastPending = syncQueue.length - currentPending;
+
+                if (currentPending === 0 && pastPending === 0) {
+                    if (currentConfirmedScores.baseScore === 0) {
+                        statusText = "아직 도전 기록이 없습니다.";
+                    } else {
+                        statusText = "모든 점수가 서버에 안전하게 기록되었습니다!";
+                    }
+                } else {
+                    statusText = `저장 대기: 현재 도전 ${currentPending}건`;
+                    if (pastPending > 0) {
+                        statusText += ` (이전 기록 ${pastPending}건 보류 중)`;
+                    }
                 }
             }
         }
 
-        elem.textContent = statusText;
-        elem.style.color = isSuccess ? "#16a34a" : "#ea580c";
+        const color = isSuccess ? "#16a34a" : (!SHEETS_WEB_APP_URL ? "#9ca3af" : "#ea580c");
+
+        if (syncStatusText) {
+            syncStatusText.textContent = statusText;
+            syncStatusText.style.color = color;
+        }
+        if (gameSyncStatus) {
+            gameSyncStatus.textContent = statusText;
+            gameSyncStatus.style.color = color;
+        }
+        if (gameSaveStatus) {
+            gameSaveStatus.textContent = statusText;
+            gameSaveStatus.style.color = color;
+        }
+        if (resultSyncStatus) {
+            resultSyncStatus.textContent = statusText;
+            resultSyncStatus.style.color = color;
+        }
     }
 
+    // 랭킹 UI 렌더링
     function renderLeaderboardUI(leaderboard, updatedAt) {
         const listBox = document.getElementById("ranking-list-box");
         const updatedElem = document.getElementById("rank-updated-text");
         if (!listBox) return;
 
         if (updatedElem && updatedAt) {
-            updatedElem.textContent = new Date(updatedAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            updatedElem.textContent = new Date(updatedAt).toLocaleString("ko-KR", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            });
         }
 
         listBox.textContent = "";
@@ -195,18 +293,18 @@
         });
     }
 
+    // 안전한 JSONP 요청
     function executeJSONP(urlParams, onCleanupRegister = null) {
         return new Promise((resolve, reject) => {
             if (!SHEETS_WEB_APP_URL) {
                 return reject(new Error("URL_NOT_CONFIGURED"));
             }
-    
+
             const callbackName = "cb_pose_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
             const script = document.createElement("script");
             let timeoutId = null;
             let isSettled = false;
-    
-            // 타임아웃 또는 외부 취소 시: 콜백을 no-op으로 치환하여 늦은 호출 시 ReferenceError 방지 (60초 후 삭제)
+
             const cleanupAborted = () => {
                 if (timeoutId) {
                     clearTimeout(timeoutId);
@@ -220,8 +318,7 @@
                     delete window[callbackName];
                 }, 60000);
             };
-    
-            // 정상 완료 시: 리소스 즉시 해제
+
             const cleanupSuccess = () => {
                 if (timeoutId) {
                     clearTimeout(timeoutId);
@@ -232,7 +329,7 @@
                 }
                 delete window[callbackName];
             };
-    
+
             if (typeof onCleanupRegister === "function") {
                 onCleanupRegister(() => {
                     if (isSettled) return;
@@ -241,57 +338,60 @@
                     reject(new DOMException("JSONP request canceled", "AbortError"));
                 });
             }
-    
+
             timeoutId = setTimeout(() => {
                 if (isSettled) return;
                 isSettled = true;
                 cleanupAborted();
                 reject(new Error("JSONP_TIMEOUT"));
             }, JSONP_TIMEOUT_MS);
-    
+
             window[callbackName] = (data) => {
                 if (isSettled) return;
                 isSettled = true;
                 cleanupSuccess();
                 resolve(data);
             };
-    
+
             script.onerror = () => {
                 if (isSettled) return;
                 isSettled = true;
                 cleanupAborted();
                 reject(new Error("JSONP_LOAD_ERROR"));
             };
-    
+
             const delim = SHEETS_WEB_APP_URL.includes("?") ? "&" : "?";
             script.src = `${SHEETS_WEB_APP_URL}${delim}${urlParams}&callback=${callbackName}`;
             document.head.appendChild(script);
         });
     }
 
+    // 랭킹 폴링 단계
     async function fetchLeaderboardStep() {
-        if (!SHEETS_WEB_APP_URL || document.hidden || isFetchingLeaderboard) return;
-    
+        if (!SHEETS_WEB_APP_URL || document.hidden || currentScreen === "game" || isFetchingLeaderboard) {
+            return;
+        }
+
         const thisGen = leaderboardGeneration;
         isFetchingLeaderboard = true;
-    
+
         try {
             const data = await executeJSONP("action=leaderboard", (cleanupFn) => {
                 if (thisGen === leaderboardGeneration) {
                     activeLeaderboardCleanup = cleanupFn;
                 }
             });
-    
+
             if (thisGen !== leaderboardGeneration) {
                 return;
             }
-    
+
             activeLeaderboardCleanup = null;
-    
-            if (document.hidden) {
+
+            if (document.hidden || currentScreen === "game") {
                 return;
             }
-    
+
             if (data && data.status === "success" && Array.isArray(data.leaderboard)) {
                 cachedLeaderboardData = data.leaderboard;
                 lastSuccessfulRankTime = data.updatedAt || new Date().toISOString();
@@ -301,13 +401,13 @@
             if (thisGen !== leaderboardGeneration) {
                 return;
             }
-    
+
             activeLeaderboardCleanup = null;
-    
-            if (document.hidden) {
+
+            if (document.hidden || currentScreen === "game") {
                 return;
             }
-    
+
             if (cachedLeaderboardData) {
                 renderLeaderboardUI(cachedLeaderboardData, lastSuccessfulRankTime);
             }
@@ -315,7 +415,7 @@
             if (thisGen === leaderboardGeneration) {
                 isFetchingLeaderboard = false;
                 activeLeaderboardCleanup = null;
-                if (!document.hidden && SHEETS_WEB_APP_URL) {
+                if (!document.hidden && currentScreen !== "game" && SHEETS_WEB_APP_URL) {
                     leaderboardTimer = setTimeout(fetchLeaderboardStep, LEADERBOARD_DELAY_MS);
                 }
             }
@@ -337,20 +437,24 @@
 
     function resumeLeaderboard() {
         stopLeaderboard();
-        if (!document.hidden && SHEETS_WEB_APP_URL) {
+        if (!document.hidden && currentScreen !== "game" && SHEETS_WEB_APP_URL) {
             fetchLeaderboardStep();
         }
     }
 
+    // 탭 가시성 감지
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
             stopLeaderboard();
         } else {
-            resumeLeaderboard();
+            if (currentScreen !== "game") {
+                resumeLeaderboard();
+            }
             processQueue();
         }
     });
 
+    // POST 및 JSONP 이중 영수증 정밀 검증 큐 처리
     async function processQueue() {
         if (isProcessingQueue || syncQueue.length === 0 || !SHEETS_WEB_APP_URL) {
             updateSyncStatusUI();
@@ -366,6 +470,7 @@
         updateSyncStatusUI(`'${targetMission}' 저장 확인 중...`);
 
         try {
+            // 순수 3필드 JSON 발송
             const postBody = JSON.stringify({
                 challengeId: targetChallengeId,
                 nickname: targetNickname,
@@ -379,10 +484,12 @@
                 body: postBody
             });
 
+            // JSONP action=check 검증
             const query = `action=check&challengeId=${encodeURIComponent(targetChallengeId)}&mission=${encodeURIComponent(targetMission)}`;
             const checkRes = await executeJSONP(query);
 
-            const isSaved = checkRes &&
+            // 1. 기본 영수증 필드 검증
+            const basicMatch = checkRes &&
                 checkRes.status === "success" &&
                 checkRes.challengeId === targetChallengeId &&
                 checkRes.mission === targetMission &&
@@ -390,19 +497,65 @@
                 Array.isArray(checkRes.completedMissions) &&
                 checkRes.completedMissions.includes(targetMission);
 
+            // 2. 점수 유한정수, 배수, 범위 및 합산 일치 정밀 검증
+            let scoreValid = false;
+            if (basicMatch &&
+                typeof checkRes.baseScore === "number" && Number.isFinite(checkRes.baseScore) && Number.isInteger(checkRes.baseScore) &&
+                typeof checkRes.bonusScore === "number" && Number.isFinite(checkRes.bonusScore) && Number.isInteger(checkRes.bonusScore) &&
+                typeof checkRes.totalScore === "number" && Number.isFinite(checkRes.totalScore) && Number.isInteger(checkRes.totalScore)) {
+
+                const b = checkRes.baseScore;
+                const bn = checkRes.bonusScore;
+                const t = checkRes.totalScore;
+
+                const baseOk = (b >= 0 && b <= 700 && b % 100 === 0);
+                const bonusMaxAllowed = (b / 100) * 30;
+                const bonusOk = (bn >= 0 && bn <= 210 && bn % 10 === 0 && bn <= bonusMaxAllowed);
+                const totalOk = (t >= 0 && t <= 910 && t === (b + bn));
+
+                scoreValid = baseOk && bonusOk && totalOk;
+            }
+
+            const isSaved = basicMatch && scoreValid;
+
             if (isSaved) {
+                // 일치하는 항목만 큐에서 안전하게 제거
                 const removeIndex = syncQueue.findIndex(
                     item => item.challengeId === targetChallengeId && item.mission === targetMission
                 );
                 if (removeIndex !== -1) {
                     syncQueue.splice(removeIndex, 1);
+                }
+
+                // 현재 도전의 영수증인 경우에만 점수 갱신 및 커스텀 이벤트 발송
+                if (targetChallengeId === currentChallengeId) {
+                    if (checkRes.baseScore >= currentConfirmedScores.baseScore) {
+                        currentConfirmedScores = {
+                            baseScore: checkRes.baseScore,
+                            bonusScore: checkRes.bonusScore,
+                            totalScore: checkRes.totalScore
+                        };
+                    }
+                    saveStorageState();
+
+                    window.dispatchEvent(new CustomEvent("pose-sheet-saved", {
+                        detail: {
+                            challengeId: currentChallengeId,
+                            baseScore: currentConfirmedScores.baseScore,
+                            bonusScore: currentConfirmedScores.bonusScore,
+                            totalScore: currentConfirmedScores.totalScore
+                        }
+                    }));
+                } else {
                     saveStorageState();
                 }
 
                 updateSyncStatusUI(`'${targetMission}' 시트 저장 완료! (+100점)`, true);
 
-                stopLeaderboard();
-                resumeLeaderboard();
+                if (currentScreen !== "game") {
+                    stopLeaderboard();
+                    resumeLeaderboard();
+                }
 
                 isProcessingQueue = false;
                 if (syncQueue.length > 0) {
@@ -411,7 +564,7 @@
                     updateSyncStatusUI();
                 }
             } else {
-                throw new Error("SERVER_RECEIPT_NOT_CONFIRMED");
+                throw new Error("SERVER_RECEIPT_NOT_CONFIRMED_OR_INVALID_SCORES");
             }
         } catch (err) {
             const currentPending = syncQueue.filter(item => item.challengeId === currentChallengeId).length;
@@ -422,6 +575,9 @@
             }
             updateSyncStatusUI(errMsg);
 
+            // 저장 실패 시에도 현재 도전 완료 집합(currentCompletedMissions)은 그대로 보존됨
+            saveStorageState();
+
             isProcessingQueue = false;
             if (SHEETS_WEB_APP_URL && !document.hidden) {
                 setTimeout(processQueue, QUEUE_RETRY_INTERVAL_MS);
@@ -429,6 +585,7 @@
         }
     }
 
+    // window.PoseSheet 전역 API 노출
     window.PoseSheet = {
         begin: function(rawNickname) {
             const nickname = String(rawNickname || "").trim();
@@ -444,13 +601,19 @@
                 throw new Error("닉네임 첫 글자로 수식 기호(=, +, -, @)를 사용할 수 없습니다.");
             }
 
+            // 새 세션 생성 (미저장 syncQueue는 절대 삭제하지 않고 유지)
             currentChallengeId = generateUUID();
             currentNickname = nickname;
+            currentCompletedMissions = new Set();
+            currentConfirmedScores = { baseScore: 0, bonusScore: 0, totalScore: 0 };
             saveStorageState();
 
             injectUI();
             updateSyncStatusUI("새 게임이 시작되었습니다. 포즈에 도전하세요!");
-            resumeLeaderboard();
+
+            if (currentScreen !== "game") {
+                resumeLeaderboard();
+            }
 
             if (syncQueue.length > 0 && SHEETS_WEB_APP_URL) {
                 processQueue();
@@ -465,25 +628,34 @@
         complete: function(missionName) {
             if (!currentChallengeId || !currentNickname) {
                 console.error("PoseSheet.begin이 먼저 호출되어야 합니다.");
-                return;
+                return { bonus: 0 };
             }
 
             const mission = String(missionName || "").trim();
             if (!VALID_MISSIONS.includes(mission)) {
                 console.error("유효하지 않은 미션 이름입니다:", mission);
-                return;
+                return { bonus: 0 };
             }
 
+            // 현재 도전에서 이미 완료 처리된 미션인 경우 보너스 0 반환 및 재전송 차단 (큐 제거 이후라도 유지)
+            if (currentCompletedMissions.has(mission)) {
+                return { bonus: 0 };
+            }
+            currentCompletedMissions.add(mission);
+
+            const bonusVal = calculatePredictedBonus(currentChallengeId, mission);
+
+            // 중복 큐 진입 방지 후 3필드 추가
             const alreadyInQueue = syncQueue.some(
                 item => item.challengeId === currentChallengeId && item.mission === mission
             );
-            if (alreadyInQueue) return;
-
-            syncQueue.push({
-                challengeId: currentChallengeId,
-                nickname: currentNickname,
-                mission: mission
-            });
+            if (!alreadyInQueue) {
+                syncQueue.push({
+                    challengeId: currentChallengeId,
+                    nickname: currentNickname,
+                    mission: mission
+                });
+            }
 
             saveStorageState();
             updateSyncStatusUI();
@@ -491,13 +663,41 @@
             if (SHEETS_WEB_APP_URL) {
                 processQueue();
             }
+
+            return { bonus: bonusVal };
+        },
+
+        setScreen: function(screenName) {
+            if (!["start", "game", "result"].includes(screenName)) return;
+            currentScreen = screenName;
+
+            mountLeaderboard(currentScreen);
+
+            if (currentScreen === "game") {
+                stopLeaderboard();
+            } else {
+                resumeLeaderboard();
+            }
+        },
+
+        getState: function() {
+            const pendingCount = syncQueue.filter(item => item.challengeId === currentChallengeId).length;
+            return {
+                challengeId: currentChallengeId,
+                pending: pendingCount,
+                baseScore: currentConfirmedScores.baseScore,
+                bonusScore: currentConfirmedScores.bonusScore,
+                totalScore: currentConfirmedScores.totalScore
+            };
         },
 
         setWebAppUrl: function(url) {
             SHEETS_WEB_APP_URL = String(url || "").trim();
             updateSyncStatusUI();
             if (SHEETS_WEB_APP_URL) {
-                resumeLeaderboard();
+                if (currentScreen !== "game") {
+                    resumeLeaderboard();
+                }
                 if (syncQueue.length > 0) {
                     processQueue();
                 }
@@ -507,16 +707,20 @@
         }
     };
 
+    // 초기화
     document.addEventListener("DOMContentLoaded", () => {
         loadStorageState();
         injectUI();
+        mountLeaderboard("start");
         updateSyncStatusUI();
 
         if (SHEETS_WEB_APP_URL) {
             if (syncQueue.length > 0) {
                 processQueue();
             }
-            resumeLeaderboard();
+            if (currentScreen !== "game") {
+                resumeLeaderboard();
+            }
         }
     });
 })();
