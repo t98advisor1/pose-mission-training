@@ -1,7 +1,7 @@
 /**
- * Codex follow-up candidate 24, based on the preserved Gemini 19 sync assembly.
- * Adds one canonical full-body bonus track and strict event/body receipts.
- * This candidate is not the deployed sheets-sync.js. Gemini originals stay intact.
+ * Codex follow-up sync 31, based on the preserved Gemini 19 / Codex 24 assembly.
+ * One canonical full-body track accepts seven grades; API mission keys stay stable.
+ * Original Gemini 19 and Codex 24 snapshots remain unchanged.
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -15,7 +15,9 @@
         "슈퍼히어로",
         "가벼운 댑"
     ];
-    const BODY_MISSIONS = ["전신 보너스 100", "전신 보너스 200", "전신 보너스 300"];
+    const BODY_GRADES = [100, 200, 300, 400, 500, 600, 700];
+    const BODY_MISSIONS = BODY_GRADES.map(score => `전신 보너스 ${score}`);
+    const displayMission = mission => mission === "꽃받침" ? "양손 꽃피우기" : mission;
     const BODY_KEY = "__full_body_bonus__";
     const isBodyMission = mission => BODY_MISSIONS.includes(mission);
     const isValidMission = mission => VALID_MISSIONS.includes(mission) || isBodyMission(mission);
@@ -39,10 +41,10 @@
         if (!numbers.every(number => typeof number === "number" && Number.isFinite(number) && Number.isInteger(number))) return null;
         if (baseScore < 0 || baseScore > 700 || baseScore % 100 !== 0) return null;
         if (eventBonusScore < 0 || eventBonusScore > 210 || eventBonusScore % 10 !== 0 || eventBonusScore > baseScore / 100 * 30) return null;
-        if (![0, 100, 200, 300].includes(bodyBonusScore)) return null;
+        if (bodyBonusScore !== 0 && !BODY_GRADES.includes(bodyBonusScore)) return null;
         if (bodyBonusScore > 0 && (!hasEvent || baseScore !== 700)) return null;
-        if (bonusScore < 0 || bonusScore > 510 || bonusScore !== eventBonusScore + bodyBonusScore) return null;
-        if (totalScore < 0 || totalScore > 1210 || totalScore !== baseScore + bonusScore) return null;
+        if (bonusScore < 0 || bonusScore > 910 || bonusScore !== eventBonusScore + bodyBonusScore) return null;
+        if (totalScore < 0 || totalScore > 1610 || totalScore !== baseScore + bonusScore) return null;
         return { baseScore, bonusScore, eventBonusScore, bodyBonusScore, totalScore };
     }
 
@@ -530,7 +532,7 @@
         const targetMission = targetItem.mission;
         const targetNickname = targetItem.nickname;
 
-        updateSyncStatusUI(`'${targetMission}' 저장 확인 중...`);
+        updateSyncStatusUI(`'${displayMission(targetMission)}' 저장 확인 중...`);
 
         try {
             // 순수 3필드 JSON 발송
@@ -554,7 +556,7 @@
             const confirmedScores = validateReceipt(checkRes, targetChallengeId, targetMission);
 
             if (confirmedScores) {
-                // Remove only the captured challenge/track. All three body grades are one track.
+                // Remove only the captured challenge/track. All seven body grades are one track.
                 syncQueue = syncQueue.filter(item => !(item.challengeId === targetChallengeId && sameMissionTrack(item.mission, targetMission)));
 
                 // 현재 도전의 영수증인 경우에만 점수 갱신 및 커스텀 이벤트 발송
@@ -582,7 +584,7 @@
                     saveStorageState();
                 }
 
-                const savedLabel = isBodyMission(targetMission) ? `전신 보너스 ${confirmedScores.bodyBonusScore}점` : `${targetMission} (+100점)`;
+                const savedLabel = isBodyMission(targetMission) ? `전신 보너스 ${confirmedScores.bodyBonusScore}점` : `${displayMission(targetMission)} (+100점)`;
                 updateSyncStatusUI(`'${savedLabel}' 시트 저장 완료!`, true);
 
                 if (currentScreen !== "game") {
@@ -602,7 +604,7 @@
         } catch (err) {
             const currentPending = syncQueue.filter(item => item.challengeId === currentChallengeId).length;
             const pastPending = syncQueue.length - currentPending;
-            let errMsg = `'${targetMission}' 동기화 보류 (대기 중)`;
+            let errMsg = `'${displayMission(targetMission)}' 동기화 보류 (대기 중)`;
             if (pastPending > 0) {
                 errMsg += ` [이전 ${pastPending}건]`;
             }

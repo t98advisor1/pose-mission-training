@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>선생님 포즈 게임</title>
+    <title>내 몸을 펼쳐라. (스트레칭!!)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
@@ -731,6 +731,23 @@ html, body {
   .header-top-row { font-size: .8rem; }
   .toolbar-btn { padding: 8px 3px; font-size: .7rem; word-break: keep-all; }
 }
+
+/* 직접 수정31: 시작 사진 썸네일과 전신 보너스 텍스트 안내 */
+.pose-thumbnail-strip { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; width: 100%; margin: 0 0 12px; }
+.pose-thumbnail-strip img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 9px; border: 1px solid #fed7aa; background: #fff7ed; }
+.brand-title { font-size: clamp(1.8rem,7vw,2.25rem); }
+.brand-title small { display: block; font-size: .58em; margin-top: 7px; }
+.bonus-preview-text { display: none; flex: 1 1 auto; min-height: 0; width: min(100%,700px); padding: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #e2e8f0; line-height: 1.35; }
+.bonus-preview-text h2 { font-size: clamp(1.6rem,5vw,2.5rem); color: #fbbf24; }
+.bonus-preview-text .bonus-intro { font-size: clamp(1.1rem,4vw,1.65rem); color: #fff; }
+.bonus-preview-text p { font-size: clamp(.85rem,3vw,1.1rem); }
+.bonus-preview-text strong { color: #86efac; font-size: clamp(.9rem,3vw,1.2rem); }
+.bonus-score-levels { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; width: min(100%,520px); }
+.bonus-score-levels span { padding: 8px 0; border-radius: 8px; background: #1e3a5f; color: #bae6fd; font-size: clamp(.8rem,3vw,1.1rem); }
+.bonus-score-levels span:last-child { background: #f97316; color: white; }
+#preview-overlay.bonus-text-preview .preview-image-frame, #preview-overlay.bonus-text-preview .preview-caption { display: none !important; }
+#preview-overlay.bonus-text-preview .bonus-preview-text { display: flex; }
+@media (max-height:480px) { .bonus-preview-text { gap: 4px; padding: 3px; } .bonus-preview-text h2 { font-size: 1.3rem; } .bonus-preview-text .bonus-intro { font-size: 1rem; } .bonus-preview-text p,.bonus-preview-text strong { font-size: .78rem; } .bonus-score-levels span { padding: 4px 0; } }
 </style>
 
     <script type="module">
@@ -753,11 +770,11 @@ html, body {
     <div id="start-screen" class="screen active">
         <div class="scroll-screen-content">
             <div class="card-panel">
-                <div style="font-size: 3.8rem; margin-bottom: 6px;">👩‍🏫📸👨‍🏫</div>
-                <h1 class="brand-title">선생님<br>포즈 게임</h1>
+                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos/big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos/heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos/victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos/thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos/flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos/hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos/dab-v2.png" alt="가벼운 댑 예시" title="가벼운 댑" width="120" height="120" decoding="async"></div>
+                <h1 class="brand-title">내 몸을 펼쳐라.<small>(스트레칭!!)</small></h1>
                 <p class="brand-desc">
-                    카메라 앞에서 신나게 포즈를 맞추고<br>
-                    <strong>기본 700점 + 전신 보너스 최대 300점 + 이벤트 보너스</strong>에 도전하세요!
+                    카메라 앞에서 신나게 몸을 펼쳐요!<br>
+                    <strong>기본 미션 700점 · 전신 보너스 최대 700점</strong><br>깜짝 이벤트 보너스까지!
                 </p>
 
                 <div class="input-box-wrapper">
@@ -817,7 +834,7 @@ html, body {
 
             <!-- 포즈 사진 2초 전체 예고 오버레이 -->
 <div id="preview-overlay" class="pose-preview-overlay">
-  <div class="preview-badge">포즈 예시 (2초 후 시작)</div>
+  <div id="preview-badge" class="preview-badge">포즈 예시 (2초 후 시작)</div>
   <div class="preview-image-frame">
     <div class="preview-card preview-card-main">
       <img id="pose-img" src="" alt="포즈 예시 사진">
@@ -831,6 +848,14 @@ html, body {
         </div>
       </div>
     </div>
+  </div>
+  <div id="bonus-preview-text" class="bonus-preview-text" role="note">
+    <h2>전신 보너스!</h2>
+    <p class="bonus-intro">가장 많은 관절로 파이프를 구성하면<br>받을 수 있는 보너스 점수!!</p>
+    <p>몸 전체를 화면 안에! 팔·다리를 크게 펼쳐요.</p>
+    <div class="bonus-score-levels" aria-label="보너스 7단계 점수"><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700점</span></div>
+    <strong>관절이 많이 보이고 동작이 클수록 높은 점수!</strong>
+    <p class="bonus-hold-copy">자세를 2초 유지하면 한 번 확정됩니다.</p>
   </div>
   <div id="preview-caption" class="preview-caption">잠시 후 카메라가 시작됩니다!</div>
 </div>
@@ -908,7 +933,7 @@ html, body {
 
 </div>
 
-<script src="./sheets-sync.js?v=20261009-30"></script>
+<script src="./sheets-sync.js?v=20261009-31"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -916,10 +941,10 @@ const poses = [
     { id: "heart", name: "머리 위 하트", src: "photos/heart-v2.png", type: "pose" },
     { id: "victory", name: "한손 브이", src: "photos/victory-v2.png", type: "gesture", gesture: "Victory" },
     { id: "thumb_up", name: "엄지척", src: "photos/thumb-up-v2.png", type: "gesture", gesture: "Thumb_Up" },
-    { id: "flower", name: "꽃받침", src: "photos/flower-v2.png", type: "hybrid" },
+    { id: "flower", name: "양손 꽃피우기", mission: "꽃받침", src: "photos/flower-v2.png", type: "hybrid" },
     { id: "hero", name: "슈퍼히어로", src: "photos/hero-v2.png", type: "pose" },
     { id: "dab", name: "가벼운 댑", src: "photos/dab-v2.png", type: "pose" },
-    { id: "body_bonus", name: "전신 보너스", src: "hints/body_bonus.svg", type: "bonus" }
+    { id: "body_bonus", name: "전신 보너스", type: "bonus" }
 ];
 
 // 게임 진행 상태 변수
@@ -1471,6 +1496,6 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261009-30"></script>
+<script src="./experience.js?v=20261009-31"></script>
 </body>
 </html>

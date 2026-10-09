@@ -4,7 +4,7 @@
  * 2) 사용자 수동 일시정지(userPaused)와 탭 비활성화 플로우 분리
  * 3) 하체 스켈레톤 라인 추가 및 AR 장식(사슴뿔/빨간 코/볼터치) 토글 기능 연동
  * 4) active 진입 시 RAF 유효성 검사 및 보너스 토스트 즉시 초기화
- * Codex 후속 통합: 7개 기본 미션 + 전신 보너스, 연속 2초 최저 등급, 경과시간.
+ * Codex 후속 통합31: 22개 몸 관절·7등급 전신 보너스, 텍스트 예고, 연속 2초 최저 등급.
  */
 (function() {
     // 7개 포즈 메타데이터
@@ -68,6 +68,7 @@
 
     const previewOverlay = document.getElementById("preview-overlay");
     const previewCaption = document.getElementById("preview-caption");
+    const bonusPreviewText = document.getElementById("bonus-preview-text");
     const statusBanner = document.getElementById("status-banner");
     const bonusToast = document.getElementById("bonus-toast");
     const progressFill = document.getElementById("progress-fill");
@@ -126,7 +127,7 @@
     }
 
     // 2D 각도와 자기 팔다리 길이 대비 벌림 비율. 실제 사람/휴대폰 경계값은 추가 검증 필요.
-    const BODY_BONUS_POINTS = Object.freeze([11,12,13,14,15,16,23,24,25,26,27,28]);
+    const BODY_BONUS_POINTS = Object.freeze(Array.from({length:22}, (_,i) => i+11));
     const FRAME_POINTS = [11,12,23,24,25,26,27,28];
     const EPS = 1e-8;
     const pointValid = p => !!p && Number.isFinite(p.x) && Number.isFinite(p.y) &&
@@ -152,7 +153,7 @@
     }
     function evaluateFullBodyBonus(lm,width,height) {
         const count=Array.isArray(lm)?BODY_BONUS_POINTS.filter(i=>pointValid(lm[i])).length:0;
-        const failure=(message,metrics=null)=>({valid:false,score:0,count,openParts:0,message,metrics});
+        const failure=(message,metrics=null)=>({valid:false,score:0,grade:0,count,coverage:count/22,spread:0,quality:0,openParts:0,message,metrics});
         if(!Array.isArray(lm)||!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)
             return failure('카메라 화면이 준비되면 시작해요.');
         if(!FRAME_POINTS.every(i=>pointValid(lm[i])))return failure('어깨부터 양발까지 화면 안에 들어오세요.');
@@ -174,9 +175,17 @@
         if(!leftLeg.open||!rightLeg.open)return failure('양발을 편하게 벌리고 무릎을 펴주세요.',metrics);
         if(!leftArm.open&&!rightArm.open)return failure('한 팔 이상을 몸 바깥으로 크게 펼쳐주세요.',metrics);
         const openParts=[leftArm,rightArm,leftLeg,rightLeg].filter(x=>x.open).length;
-        const strongParts=[leftArm,rightArm,leftLeg,rightLeg].filter(x=>x.strong).length;
-        const score=count===12&&strongParts===4?300:count===12&&openParts===4?200:100;
-        return {valid:true,score,count,openParts,message:`${score}점 자세예요. 2초 동안 유지하세요.`,metrics};
+        const clamp01=value=>Math.max(0,Math.min(1,value));
+        for(const [part,target] of [[leftArm,.85],[rightArm,.85],[leftLeg,.50],[rightLeg,.50]]) {
+            part.expansion=part.angle===null?0:clamp01((part.angle-100)/70)*clamp01(part.sideReach/target);
+        }
+        const coverage=count/22;
+        const spread=[leftArm,rightArm,leftLeg,rightLeg].reduce((sum,part)=>sum+part.expansion,0)/4;
+        const quality=coverage*spread;
+        let grade=Math.max(1,Math.min(7,Math.ceil(quality*7-1e-9)));
+        if(count<22 || spread<.85)grade=Math.min(6,grade);
+        const score=grade*100;
+        return {valid:true,score,grade,count,coverage,spread,quality,openParts,message:`${grade}/7단계, 예상 ${score}점이에요. 2초 동안 유지하세요.`,metrics};
     }
     window.evaluateFullBodyBonus = evaluateFullBodyBonus;
 
@@ -482,7 +491,10 @@
             [11, 12], [11, 13], [13, 15],
             [12, 14], [14, 16],
             [11, 23], [12, 24], [23, 24],
-            [23, 25], [25, 27], [24, 26], [26, 28] // 하체 라인
+            [23, 25], [25, 27], [24, 26], [26, 28],
+            [15, 17], [15, 19], [15, 21], [17, 19],
+            [16, 18], [16, 20], [16, 22], [18, 20],
+            [27, 29], [29, 31], [27, 31], [28, 30], [30, 32], [28, 32]
         ];
 
         ctx.save();
@@ -493,7 +505,7 @@
         CONNECTIONS.forEach(([i, j]) => {
             const p1 = landmarks[i];
             const p2 = landmarks[j];
-            if (isValidPoint(p1) && isValidPoint(p2)) {
+            if (pointValid(p1) && pointValid(p2)) {
                 const c1 = normToCanvas(p1);
                 const c2 = normToCanvas(p2);
                 ctx.beginPath();
@@ -503,9 +515,9 @@
             }
         });
 
-        [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach(idx => {
+        BODY_BONUS_POINTS.forEach(idx => {
             const pt = landmarks[idx];
-            if (isValidPoint(pt)) {
+            if (pointValid(pt)) {
                 const c = normToCanvas(pt);
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
@@ -540,6 +552,11 @@
         return -1;
     }
 
+    function closePosePreview() {
+        if (previewOverlay) previewOverlay.classList.remove("active", "bonus-text-preview");
+        if (bonusPreviewText) bonusPreviewText.style.display = "none";
+    }
+
     window.handleAppDeactivation = function() {
         missionGeneration++;
         phase = "paused";
@@ -554,7 +571,7 @@
         }
         clearBonusToast();
 
-        if (previewOverlay) previewOverlay.classList.remove("active");
+        closePosePreview();
         clearOverlayCanvas();
 
         if (animationFrameId) {
@@ -579,7 +596,7 @@
         }
         clearBonusToast();
 
-        if (previewOverlay) previewOverlay.classList.remove("active");
+        closePosePreview();
         clearOverlayCanvas();
 
         if (typeof nativeStopCamera === "function") {
@@ -602,14 +619,20 @@
         clearOverlayCanvas();
 
         const currentPose = poses[poseIdx];
+        const isBodyBonus = currentPose.type === "bonus";
+        const previewBadge = document.getElementById("preview-badge");
+        if (previewBadge) previewBadge.innerText = isBodyBonus ? "전신 보너스 안내 (2초 후 시작)" : "포즈 예시 (2초 후 시작)";
         const poseMeta = (typeof POSE_INFO !== "undefined" && POSE_INFO[currentPose.id]) || { emoji: "✨", desc: "" };
 
-        if (stepBadge) stepBadge.innerText = currentPose.type === "bonus" ? "BONUS" : `${poseIdx + 1} / 7`;
+        if (stepBadge) stepBadge.innerText = isBodyBonus ? "BONUS" : `${poseIdx + 1} / 7`;
         if (poseTitle) poseTitle.innerText = `${currentPose.name} ${poseMeta.emoji}`;
         if (poseDesc) poseDesc.innerText = poseMeta.desc;
+        if (replayPhotoBtn) replayPhotoBtn.innerText = isBodyBonus ? "안내 다시보기" : "사진 다시보기";
+        if (previewOverlay) previewOverlay.classList.toggle("bonus-text-preview", isBodyBonus);
+        if (bonusPreviewText) bonusPreviewText.style.display = isBodyBonus ? "flex" : "none";
         if (statusBanner) {
             statusBanner.className = "vision-hud-banner";
-            statusBanner.innerText = "포즈 사진을 확인하세요!";
+            statusBanner.innerText = isBodyBonus ? "전신 보너스 안내를 확인하세요!" : "포즈 사진을 확인하세요!";
         }
 
         if (previewCaption) previewCaption.innerText = `다음 포즈: ${currentPose.name} ${poseMeta.emoji}`;
@@ -618,7 +641,7 @@
         // 힌트 SVG 요소 및 상태 초기화
         const hintImg = document.getElementById("pose-hint-img");
         const hintFallback = document.getElementById("pose-hint-fallback");
-        if (hintImg) {
+        if (hintImg && !isBodyBonus) {
             hintImg.style.display = "block";
             hintImg.alt = `${currentPose.name} 관절 연결선 힌트`;
             hintImg.onerror = () => {
@@ -646,7 +669,7 @@
                     document.hidden || !localStream || !webcam || webcam.paused) {
                     return;
                 }
-                if (previewOverlay) previewOverlay.classList.remove("active");
+                closePosePreview();
                 phase = "active";
                 window.resetHoldTimer();
                 lastFrameTimestamp = null;
@@ -663,6 +686,17 @@
 
         poseImg.onload = null;
         poseImg.onerror = null;
+        if (isBodyBonus) {
+            poseImg.removeAttribute("src");
+            if (hintImg) {
+                hintImg.onerror = null;
+                hintImg.removeAttribute("src");
+                hintImg.style.display = "none";
+            }
+            if (hintFallback) hintFallback.style.display = "none";
+            onImageReady();
+            return;
+        }
         poseImg.onload = onImageReady;
         poseImg.onerror = () => {
             console.warn("포즈 이미지 로드 실패:", currentPose.src);
@@ -780,7 +814,7 @@
                             if (statusBanner) {
                                 statusBanner.className = "vision-hud-banner success";
                                 statusBanner.innerText = bodyEvaluation
-                                    ? `[자세맞음] 전신 예상 +${bodyWindowMinScore}점 · 관절 ${bodyEvaluation.count}/12 · ${(accumulatedHoldMs / 1000).toFixed(1)}s 유지`
+                                    ? `[자세맞음] ${bodyWindowMinScore/100}/7단계 · 관절 ${bodyEvaluation.count}/22 · 예상 +${bodyWindowMinScore}점 · ${(accumulatedHoldMs / 1000).toFixed(1)}s 유지`
                                     : `[자세맞음] 완벽해요! 유지하세요! (${(accumulatedHoldMs / 1000).toFixed(1)}s)`;
                             }
 
@@ -798,13 +832,13 @@
                                     let bonusVal = 0;
                                     if ((!isBodyBonus || !bodySubmitted) && window.PoseSheet && typeof window.PoseSheet.complete === "function") {
                                         if (isBodyBonus) bodySubmitted = true;
-                                        const res = window.PoseSheet.complete(isBodyBonus ? `전신 보너스 ${bodyTier}` : currentMission.name);
+                                        const res = window.PoseSheet.complete(isBodyBonus ? `전신 보너스 ${bodyTier}` : (currentMission.mission || currentMission.name));
                                         if (res && Number.isFinite(res.bonus) && res.bonus >= 0) {
                                             bonusVal = res.bonus;
                                         }
                                     }
                                     if (isBodyBonus) {
-                                        bodyBonusScore += [100, 200, 300].includes(bonusVal) ? bonusVal : 0;
+                                        bodyBonusScore += [100, 200, 300, 400, 500, 600, 700].includes(bonusVal) ? bonusVal : 0;
                                     } else {
                                         eventBonusScore += [10, 20, 30].includes(bonusVal) ? bonusVal : 0;
                                     }
@@ -840,7 +874,9 @@
                                 }
                             }
                         } else {
-                            window.resetHoldTimer(bodyEvaluation ? bodyEvaluation.message : "자세를 맞추고 2초 동안 유지해 주세요!");
+                            window.resetHoldTimer(bodyEvaluation
+                                ? `0/7단계 · 관절 ${bodyEvaluation.count}/22 · 예상 +0점 · ${bodyEvaluation.message}`
+                                : "자세를 맞추고 2초 동안 유지해 주세요!");
                         }
                     } else {
                         drawSkeleton(userLandmarks, false);
@@ -879,7 +915,7 @@
 
                 if (pendingCount === 0 && state.challengeId && currentSession && state.challengeId === currentSession.challengeId) {
                     if (Number.isFinite(state.baseScore)) totalScore = state.baseScore;
-                    if (Number.isFinite(state.bodyBonusScore)) bodyBonusScore = Math.max(0, Math.min(300, state.bodyBonusScore));
+                    if (Number.isFinite(state.bodyBonusScore)) bodyBonusScore = Math.max(0, Math.min(700, state.bodyBonusScore));
                     if (Number.isFinite(state.eventBonusScore)) eventBonusScore = Math.max(0, Math.min(210, state.eventBonusScore));
                     else if (Number.isFinite(state.bonusScore)) eventBonusScore = Math.max(0, Math.min(210, state.bonusScore - bodyBonusScore));
                     renderScoreNumbers();
