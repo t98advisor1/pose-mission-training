@@ -737,13 +737,12 @@ html, body {
 .pose-thumbnail-strip img { flex: 0 0 78%; width: 78%; height: auto; aspect-ratio: 1; object-fit: contain; scroll-snap-align: center; border-radius: 16px; border: 1px solid #fed7aa; background: #fff7ed; }
 .brand-title { font-size: clamp(1.8rem,7vw,2.25rem); }
 .brand-title small { display: block; font-size: .58em; margin-top: 7px; }
-.book-icon-link { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; margin-bottom: 12px; padding: 5px 10px 5px 5px; border: 1px solid #ddd6fe; border-radius: 12px; background: #f5f3ff; color: #51459c; text-decoration: none; text-align: left; font-size: .75rem; line-height: 1.4; }
-.book-icon-link img { width: 34px; height: 47px; object-fit: contain; border-radius: 3px; }
-.book-icon-link:focus-visible { outline: 3px solid #51459c; outline-offset: 3px; }
+.footer-book-link { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 26px; min-height: 26px; margin-right: 4px; }
+.footer-book-link img { width: 16px; height: 22px; object-fit: contain; border-radius: 2px; }
+.footer-book-link:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
 .family-invite { font-size: .9rem; color: #9a3412; margin: 9px 0 0; }
-.welcome-topline { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
-.welcome-topline .book-icon-link { margin: 0; align-self: auto; }
-.guide-launch { display: flex; align-items: center; gap: 8px; border: 0; border-radius: 15px; padding: 8px 10px; background: #ffedd5; color: #9a3412; font: inherit; cursor: pointer; text-align: left; }
+.welcome-topline { width: 100%; margin-bottom: 14px; }
+.guide-launch { display: flex; width: 100%; justify-content: center; align-items: center; gap: 12px; border: 0; border-radius: 15px; padding: 10px; background: #ffedd5; color: #9a3412; font: inherit; cursor: pointer; text-align: left; }
 .guide-launch .bouncy-face { font-size: 2.6rem; display: inline-block; animation: guide-bounce 1.8s ease-in-out infinite; }
 .guide-launch small { display: block; font-size: .72rem; margin-top: 4px; }
 @keyframes guide-bounce { 0%,70%,100% { transform: translateY(0) rotate(-7deg); } 30% { transform: translateY(-7px) rotate(7deg); } 45% { transform: translateY(0) rotate(-4deg); } }
@@ -783,7 +782,7 @@ html, body {
 .guide-footer .practice-entry { max-width: 540px; margin: 4px auto; }
 .guide-footer p { font-size: .8rem; color: #0369a1; }
 @media(prefers-reduced-motion:reduce) { .guide-launch .bouncy-face { animation: none; } }
-@media(max-width:400px) { .guide-launch { padding: 6px; gap: 4px; } .guide-launch .bouncy-face { font-size: 2rem; } .welcome-topline .book-icon-link { padding: 4px; gap: 5px; font-size: .66rem; } .guide-body { padding: 12px; } .guide-photo-pair { gap: 8px; } }
+@media(max-width:400px) { .guide-launch { padding: 10px; gap: 8px; } .guide-launch .bouncy-face { font-size: 2rem; } .guide-body { padding: 12px; } .guide-photo-pair { gap: 8px; } }
 .bonus-preview-text { display: none; flex: 1 1 auto; min-height: 0; width: min(100%,700px); padding: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #e2e8f0; line-height: 1.35; }
 .bonus-preview-text h2 { font-size: clamp(1.6rem,5vw,2.5rem); color: #fbbf24; }
 .bonus-preview-text .bonus-intro { font-size: clamp(1.1rem,4vw,1.65rem); color: #fff; }
@@ -818,8 +817,7 @@ html, body {
         <div class="scroll-screen-content">
             <div class="card-panel">
                 <div class="welcome-topline">
-                    <button id="guide-open-btn" class="guide-launch" type="button" aria-haspopup="dialog"><span class="bouncy-face" aria-hidden="true">🤪</span><span>처음이세요?<small>눌러서 사용법 보기</small></span></button>
-                    <a class="book-icon-link" href="https://product.kyobobook.co.kr/detail/S000220363390" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 책 보기 (새 창)"><img src="assets/book-cover.jpg" alt="교사와 학부모를 위한 바이브 코딩 책 표지" width="34" height="47" decoding="async"><span>교사와 학부모를 위한<br>바이브 코딩 ↗</span></a>
+                    <button id="guide-open-btn" class="guide-launch" type="button" aria-haspopup="dialog"><span class="bouncy-face" aria-hidden="true">🤪</span><span>캐러셀 설명서<small>눌러서 사진 넘겨 보기 · 전체 화면 연습</small></span></button>
                 </div>
 
                 <h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1>
@@ -850,7 +848,7 @@ html, body {
             <div id="leaderboard-home" class="leaderboard-mount-box"></div>
         </div>
         <footer class="global-footer">
-            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets/book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -937,7 +935,7 @@ html, body {
         </div>
 
         <footer class="global-footer">
-            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets/book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -977,7 +975,7 @@ html, body {
             <div id="leaderboard-result" class="leaderboard-mount-box"></div>
         </div>
         <footer class="global-footer">
-            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets/book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -1003,7 +1001,7 @@ html, body {
     </div>
 </dialog>
 
-<script src="./sheets-sync.js?v=20261009-33"></script>
+<script src="./sheets-sync.js?v=20261009-34"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -1566,7 +1564,7 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261009-33"></script>
-<script src="./guide.js?v=20261009-33"></script>
+<script src="./experience.js?v=20261009-34"></script>
+<script src="./guide.js?v=20261009-34"></script>
 </body>
 </html>
