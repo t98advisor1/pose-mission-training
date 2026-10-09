@@ -5,6 +5,7 @@
  * 3) 하체 스켈레톤 라인 추가 및 AR 장식(사슴뿔/빨간 코/볼터치) 토글 기능 연동
  * 4) active 진입 시 RAF 유효성 검사 및 보너스 토스트 즉시 초기화
  * Codex 후속 통합31: 22개 몸 관절·7등급 전신 보너스, 텍스트 예고, 연속 2초 최저 등급.
+ * Codex 후속 통합33: 점수·저장과 분리한 전체 화면 예비 연습 및 선택 포즈 반복.
  */
 (function() {
     // 7개 포즈 메타데이터
@@ -34,6 +35,9 @@
     let elapsedMs = 0;
     let elapsedInterval = null;
     let currentSession = null;
+    let practiceMode = false;
+    let practiceUiSnapshot = null;
+    let practiceStartCancel = null;
     let previewTimer = null;
     let successTransitionTimer = null;
     let bonusToastTimer = null;
@@ -78,6 +82,8 @@
     const replayPhotoBtn = document.getElementById("replay-photo-btn");
     const exitGameBtn = document.getElementById("exit-game-btn");
     const decorToggleBtn = document.getElementById("decor-toggle");
+    const practiceControls = document.getElementById("practice-controls");
+    const practicePoseSelect = document.getElementById("practice-pose-select");
 
     const gameSyncStatus = document.getElementById("game-sync-status");
     const resultSyncStatus = document.getElementById("result-sync-status");
@@ -116,6 +122,10 @@
     }
 
     function renderScoreNumbers() {
+        if (practiceMode) {
+            if (scoreText) scoreText.innerText = "저장 안 함";
+            return;
+        }
         totalScore = Math.max(0, Math.min(700, totalScore));
         bonusScore = eventBonusScore + bodyBonusScore;
         if (scoreText) scoreText.innerText = `${totalScore}점`;
@@ -546,6 +556,7 @@
     };
 
     function getNextIncompletePoseIndex() {
+        if (practiceMode) return currentPoseIndex;
         for (let i = 0; i < poses.length; i++) {
             if (!clearedPoses[i]) return i;
         }
@@ -555,6 +566,12 @@
     function closePosePreview() {
         if (previewOverlay) previewOverlay.classList.remove("active", "bonus-text-preview");
         if (bonusPreviewText) bonusPreviewText.style.display = "none";
+        if (poseImg) {
+            poseImg.onload = null;
+            poseImg.onerror = null;
+        }
+        const hintImg = document.getElementById("pose-hint-img");
+        if (hintImg) hintImg.onerror = null;
     }
 
     window.handleAppDeactivation = function() {
@@ -579,10 +596,16 @@
             animationFrameId = null;
         }
         window.resetHoldTimer("화면을 벗어나 일시정지되었습니다.");
+        // 연습도 숨김 즉시 장치 점유와 진행 중 권한/모델 대기를 취소합니다.
+        if (practiceMode) window.stopCamera();
     };
 
     const nativeStopCamera = window.stopCamera;
     window.stopCamera = function() {
+        if (practiceStartCancel) {
+            practiceStartCancel();
+            practiceStartCancel = null;
+        }
         missionGeneration++;
         phase = "paused";
 
@@ -624,7 +647,7 @@
         if (previewBadge) previewBadge.innerText = isBodyBonus ? "전신 보너스 안내 (2초 후 시작)" : "포즈 예시 (2초 후 시작)";
         const poseMeta = (typeof POSE_INFO !== "undefined" && POSE_INFO[currentPose.id]) || { emoji: "✨", desc: "" };
 
-        if (stepBadge) stepBadge.innerText = isBodyBonus ? "BONUS" : `${poseIdx + 1} / 7`;
+        if (stepBadge) stepBadge.innerText = practiceMode ? "연습" : isBodyBonus ? "BONUS" : `${poseIdx + 1} / 7`;
         if (poseTitle) poseTitle.innerText = `${currentPose.name} ${poseMeta.emoji}`;
         if (poseDesc) poseDesc.innerText = poseMeta.desc;
         if (replayPhotoBtn) replayPhotoBtn.innerText = isBodyBonus ? "안내 다시보기" : "사진 다시보기";
@@ -823,7 +846,20 @@
                                 accumulatedHoldMs = 0;
                                 lastFrameTimestamp = null;
 
-                                if (!clearedPoses[currentPoseIndex]) {
+                                if (practiceMode) {
+                                    if (statusBanner) {
+                                        statusBanner.className = "vision-hud-banner success";
+                                        statusBanner.innerText = `🎉 '${currentMission.name}' 연습 성공! 기록하지 않습니다.`;
+                                    }
+                                    const thisGameGen = gameGeneration;
+                                    const thisMissionGen = missionGeneration;
+                                    const selectedIndex = currentPoseIndex;
+                                    successTransitionTimer = setTimeout(() => {
+                                        successTransitionTimer = null;
+                                        if (!practiceMode || thisGameGen !== gameGeneration || thisMissionGen !== missionGeneration || document.hidden) return;
+                                        window.renderPoseView(selectedIndex);
+                                    }, 800);
+                                } else if (!clearedPoses[currentPoseIndex]) {
                                     clearedPoses[currentPoseIndex] = true;
                                     const isBodyBonus = currentMission.type === "bonus";
                                     const bodyTier = bodyWindowMinScore;
@@ -908,6 +944,7 @@
 
     // ① 점수 수치 갱신만 처리하는 updateSyncStatusDisplay 함수
     function updateSyncStatusDisplay() {
+        if (practiceMode) return;
         if (window.PoseSheet && typeof window.PoseSheet.getState === "function") {
             const state = window.PoseSheet.getState();
             if (state) {
@@ -925,8 +962,130 @@
     }
 
     window.addEventListener("pose-sheet-saved", (evt) => {
-        if (evt.detail && currentSession && evt.detail.challengeId === currentSession.challengeId) {
+        if (!practiceMode && evt.detail && currentSession && evt.detail.challengeId === currentSession.challengeId) {
             updateSyncStatusDisplay();
+        }
+    });
+
+    // UI 상태만 바꾸며 실제 저장 큐와 기존 도전에는 손대지 않습니다.
+    function setPracticeMode(enabled) {
+        if (enabled && !practiceMode) {
+            practiceUiSnapshot = {
+                player: playerTag && playerTag.innerText,
+                badge: stepBadge && stepBadge.innerText,
+                exit: exitGameBtn && exitGameBtn.innerText,
+                display: [bonusScoreText, gameSyncStatus, document.getElementById("game-save-status")]
+                    .filter(Boolean).map(element => ({element, display: element.style.display}))
+            };
+        }
+        practiceMode = enabled;
+        gameScreen.classList.toggle("practice-mode", enabled);
+        if (practiceControls) practiceControls.hidden = !enabled;
+        if (enabled) {
+            if (playerTag) playerTag.innerText = "예비 연습 · 기록 안 함";
+            if (stepBadge) stepBadge.innerText = "연습";
+            if (scoreText) scoreText.innerText = "저장 안 함";
+            if (exitGameBtn) exitGameBtn.innerText = "연습 마치기";
+            for (const element of [bonusScoreText, gameSyncStatus, document.getElementById("game-save-status")]) {
+                if (element) element.style.display = "none";
+            }
+        } else if (practiceUiSnapshot) {
+            if (playerTag) playerTag.innerText = practiceUiSnapshot.player;
+            if (stepBadge) stepBadge.innerText = practiceUiSnapshot.badge;
+            if (exitGameBtn) exitGameBtn.innerText = practiceUiSnapshot.exit;
+            for (const item of practiceUiSnapshot.display) item.element.style.display = item.display || "";
+            practiceUiSnapshot = null;
+            renderScoreNumbers();
+        }
+    }
+
+    function practiceIndex(poseId) {
+        const index = poses.findIndex(pose => pose.id === poseId);
+        const fallback = poses.findIndex(pose => pose.id === "big_v");
+        return index >= 0 ? index : Math.max(0, fallback);
+    }
+
+    async function startPractice(poseId = "big_v") {
+        if (document.hidden) return false;
+        const capturedGameGen = ++gameGeneration;
+        window.stopCamera();
+        currentSession = null;
+        userPaused = false;
+        clearedPoses = new Array(poses.length).fill(false);
+        totalScore = bonusScore = eventBonusScore = bodyBonusScore = 0;
+        bodySubmitted = false;
+        currentPoseIndex = practiceIndex(poseId);
+        setPracticeMode(true);
+        if (practicePoseSelect) practicePoseSelect.value = poses[currentPoseIndex].id;
+        startBtn.disabled = false;
+        startElapsedClock();
+        setAppScreen("game");
+        phase = "waiting";
+        const capturedMissionGen = missionGeneration;
+        if (pauseResumeBtn) pauseResumeBtn.innerText = "카메라 켜는 중...";
+        let cancelThisStart;
+        const cancelled = new Promise(resolve => { cancelThisStart = resolve; });
+        practiceStartCancel = cancelThisStart;
+        try {
+            if (typeof window.startCamera === "function") await Promise.race([window.startCamera(), cancelled]);
+        } catch (error) {
+            if (capturedGameGen !== gameGeneration || capturedMissionGen !== missionGeneration) return false;
+            window.stopCamera();
+            if (statusBanner) statusBanner.innerText = "연습 카메라를 시작할 수 없습니다. 권한과 장치를 확인해 주세요.";
+            if (pauseResumeBtn) pauseResumeBtn.innerText = "▶️ 계속하기";
+            return false;
+        } finally {
+            if (practiceStartCancel === cancelThisStart) practiceStartCancel = null;
+        }
+        if (!practiceMode || capturedGameGen !== gameGeneration || capturedMissionGen !== missionGeneration || document.hidden) return false;
+        if (!gameScreen.classList.contains("active") || !localStream || !webcam || webcam.paused) {
+            phase = "paused";
+            if (pauseResumeBtn) pauseResumeBtn.innerText = "▶️ 계속하기";
+            return false;
+        }
+        if (pauseResumeBtn) pauseResumeBtn.innerText = "⏸️ 일시정지";
+        window.renderPoseView(currentPoseIndex);
+        return true;
+    }
+
+    function stopPractice() {
+        if (!practiceMode) return false;
+        const wasPractice = practiceMode;
+        gameGeneration++;
+        startBtn.disabled = false;
+        window.stopCamera();
+        stopElapsedClock();
+        currentSession = null;
+        userPaused = false;
+        setPracticeMode(false);
+        setAppScreen("start");
+        return wasPractice;
+    }
+
+    window.PosePractice = Object.freeze({start: startPractice, stop: stopPractice});
+    if (practicePoseSelect) practicePoseSelect.addEventListener("change", () => {
+        if (!practiceMode || !gameScreen.classList.contains("active")) return;
+        const selectedIndex = practiceIndex(practicePoseSelect.value);
+        if (successTransitionTimer) clearTimeout(successTransitionTimer);
+        successTransitionTimer = null;
+        if (userPaused || document.hidden) {
+            missionGeneration++;
+            currentPoseIndex = selectedIndex;
+            practicePoseSelect.value = poses[selectedIndex].id;
+            window.resetHoldTimer();
+            closePosePreview();
+            phase = "paused";
+            if (poseTitle) poseTitle.innerText = `${poses[selectedIndex].name} ${POSE_INFO[poses[selectedIndex].id].emoji}`;
+            if (poseDesc) poseDesc.innerText = POSE_INFO[poses[selectedIndex].id].desc;
+            if (statusBanner) statusBanner.innerText = "연습 포즈를 선택했습니다. 계속하기를 누르면 시작합니다.";
+            return;
+        }
+        // 준비 중/정지 중 선택은 카메라 세대도 취소하여 늦은 이전 응답을 배제합니다.
+        if (!localStream || !webcam || webcam.paused || phase === "waiting" || phase === "paused") {
+            void startPractice(poses[selectedIndex].id);
+        } else {
+            practicePoseSelect.value = poses[selectedIndex].id;
+            window.renderPoseView(selectedIndex);
         }
     });
 
@@ -954,6 +1113,8 @@
             startBtn.disabled = false;
             return;
         }
+
+        setPracticeMode(false);
 
         userPaused = false;
         clearedPoses = new Array(poses.length).fill(false);
@@ -999,6 +1160,7 @@
         startBtn.disabled = false;
         window.stopCamera();
         stopElapsedClock();
+        setPracticeMode(false);
         setAppScreen("start");
     });
 
@@ -1063,6 +1225,10 @@
 
     // 게임 종료 버튼
     exitGameBtn.addEventListener("click", () => {
+        if (practiceMode) {
+            stopPractice();
+            return;
+        }
         if (confirm("정말 게임을 종료하고 시작 화면으로 돌아갈까요?")) {
             gameGeneration++;
             startBtn.disabled = false;
@@ -1087,7 +1253,7 @@
 
     // 탭 복귀 시 안전 재개 (사용자 수동 pause 상태 제외)
     document.addEventListener("visibilitychange", async () => {
-        if (!document.hidden && gameScreen.classList.contains("active") && currentSession) {
+        if (!document.hidden && gameScreen.classList.contains("active") && (currentSession || practiceMode)) {
             updateElapsedTime();
             if (userPaused) {
                 return; // 사용자가 직접 멈춘 경우 자동으로 카메라를 켜지 않음

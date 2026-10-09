@@ -733,14 +733,57 @@ html, body {
 }
 
 /* 직접 수정31: 시작 사진 썸네일과 전신 보너스 텍스트 안내 */
-.pose-thumbnail-strip { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; width: 100%; margin: 0 0 12px; }
-.pose-thumbnail-strip img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 9px; border: 1px solid #fed7aa; background: #fff7ed; }
+.pose-thumbnail-strip { display: flex; gap: 12px; width: 100%; margin: 0 0 8px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding: 4px 0 10px; }
+.pose-thumbnail-strip img { flex: 0 0 78%; width: 78%; height: auto; aspect-ratio: 1; object-fit: contain; scroll-snap-align: center; border-radius: 16px; border: 1px solid #fed7aa; background: #fff7ed; }
 .brand-title { font-size: clamp(1.8rem,7vw,2.25rem); }
 .brand-title small { display: block; font-size: .58em; margin-top: 7px; }
 .book-icon-link { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; margin-bottom: 12px; padding: 5px 10px 5px 5px; border: 1px solid #ddd6fe; border-radius: 12px; background: #f5f3ff; color: #51459c; text-decoration: none; text-align: left; font-size: .75rem; line-height: 1.4; }
 .book-icon-link img { width: 34px; height: 47px; object-fit: contain; border-radius: 3px; }
 .book-icon-link:focus-visible { outline: 3px solid #51459c; outline-offset: 3px; }
 .family-invite { font-size: .9rem; color: #9a3412; margin: 9px 0 0; }
+.welcome-topline { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+.welcome-topline .book-icon-link { margin: 0; align-self: auto; }
+.guide-launch { display: flex; align-items: center; gap: 8px; border: 0; border-radius: 15px; padding: 8px 10px; background: #ffedd5; color: #9a3412; font: inherit; cursor: pointer; text-align: left; }
+.guide-launch .bouncy-face { font-size: 2.6rem; display: inline-block; animation: guide-bounce 1.8s ease-in-out infinite; }
+.guide-launch small { display: block; font-size: .72rem; margin-top: 4px; }
+@keyframes guide-bounce { 0%,70%,100% { transform: translateY(0) rotate(-7deg); } 30% { transform: translateY(-7px) rotate(7deg); } 45% { transform: translateY(0) rotate(-4deg); } }
+.gallery-caption { color: #9a3412; font-size: .85rem; margin: 14px 0 5px; }
+.gallery-nav { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; margin-bottom: 16px; color: #9a3412; }
+.gallery-nav button { min-width: 44px; min-height: 44px; border: 1px solid #fed7aa; border-radius: 12px; background: #fff7ed; font: inherit; color: #9a3412; cursor: pointer; }
+.practice-entry { width: 100%; min-height: 48px; background: #eff6ff; color: #075985; border: 2px solid #bae6fd; border-radius: 16px; font: inherit; font-size: 1.05rem; cursor: pointer; margin-bottom: 8px; }
+.practice-entry-note { font-size: .8rem; color: #0369a1; margin-bottom: 15px; }
+#practice-controls { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+#practice-controls[hidden] { display: none; }
+#practice-controls select { flex: 1; min-width: 0; min-height: 38px; background: #1e293b; color: white; border: 1px solid #64748b; border-radius: 8px; font: inherit; padding: 5px; }
+#practice-guide-btn { min-height: 38px; background: #e0f2fe; color: #075985; border: 0; border-radius: 8px; font: inherit; padding: 5px 10px; }
+#game-screen.practice-mode #game-save-status,#game-screen.practice-mode .score-display-group { display: none; }
+.guide-dialog { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; background: #fff7ed; color: #374151; padding: 0; }
+.guide-dialog::backdrop { background: #1e293b; }
+.guide-shell { height: 100%; display: flex; flex-direction: column; }
+.guide-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px max(16px,env(safe-area-inset-right)); background: white; border-bottom: 1px solid #fed7aa; }
+.guide-header strong { color: #c2410c; font-size: 1.05rem; }
+.guide-header button,.guide-navigation button { min-height: 44px; border: 1px solid #fdba74; border-radius: 12px; background: white; color: #9a3412; padding: 8px 14px; font: inherit; cursor: pointer; }
+.guide-body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 18px; touch-action: pan-y; }
+.guide-page { max-width: 900px; margin: auto; text-align: center; }
+.guide-page h2 { color: #c2410c; font-size: clamp(1.6rem,5vw,2.3rem); margin: 6px 0 12px; }
+.guide-page p { max-width: 680px; margin: 10px auto; font-size: clamp(1rem,3.5vw,1.2rem); line-height: 1.65; word-break: keep-all; }
+.guide-page .guide-success { color: #075985; background: #e0f2fe; border-radius: 14px; padding: 12px; }
+.guide-emoji { font-size: 4rem; }
+.pose-guide-page .guide-emoji { display: none; }
+.guide-photo-pair { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); align-items: center; gap: 14px; width: min(100%,650px); margin: 18px auto; }
+.guide-photo-pair figure { min-width: 0; }
+.guide-photo-pair img { display: block; width: 100%; height: min(30vh,240px); object-fit: contain; border-radius: 15px; background: white; }
+.guide-photo-pair figcaption { font-size: .85rem; margin-top: 7px; color: #6b7280; }
+.guide-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 6px; }
+.guide-dots button { min-width: 24px; min-height: 24px; border: 0; background: transparent; cursor: pointer; }
+.guide-dots button::after { content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: #fdba74; margin: auto; }
+.guide-dots button[aria-current='step']::after { background: #c2410c; transform: scale(1.4); }
+.guide-navigation { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 8px 12px; }
+.guide-footer { padding: 8px 16px max(12px,env(safe-area-inset-bottom)); background: white; border-top: 1px solid #fed7aa; text-align: center; }
+.guide-footer .practice-entry { max-width: 540px; margin: 4px auto; }
+.guide-footer p { font-size: .8rem; color: #0369a1; }
+@media(prefers-reduced-motion:reduce) { .guide-launch .bouncy-face { animation: none; } }
+@media(max-width:400px) { .guide-launch { padding: 6px; gap: 4px; } .guide-launch .bouncy-face { font-size: 2rem; } .welcome-topline .book-icon-link { padding: 4px; gap: 5px; font-size: .66rem; } .guide-body { padding: 12px; } .guide-photo-pair { gap: 8px; } }
 .bonus-preview-text { display: none; flex: 1 1 auto; min-height: 0; width: min(100%,700px); padding: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #e2e8f0; line-height: 1.35; }
 .bonus-preview-text h2 { font-size: clamp(1.6rem,5vw,2.5rem); color: #fbbf24; }
 .bonus-preview-text .bonus-intro { font-size: clamp(1.1rem,4vw,1.65rem); color: #fff; }
@@ -774,14 +817,22 @@ html, body {
     <div id="start-screen" class="screen active">
         <div class="scroll-screen-content">
             <div class="card-panel">
-                <a class="book-icon-link" href="https://product.kyobobook.co.kr/detail/S000220363390" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 책 보기 (새 창)"><img src="assets/book-cover.jpg" alt="교사와 학부모를 위한 바이브 코딩 책 표지" width="34" height="47" decoding="async"><span>교사와 학부모를 위한<br>바이브 코딩 ↗</span></a>
-                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos/big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos/heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos/victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos/thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos/flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos/hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos/dab-v2.png" alt="가벼운 댑 예시" title="가벼운 댑" width="120" height="120" decoding="async"></div>
+                <div class="welcome-topline">
+                    <button id="guide-open-btn" class="guide-launch" type="button" aria-haspopup="dialog"><span class="bouncy-face" aria-hidden="true">🤪</span><span>처음이세요?<small>눌러서 사용법 보기</small></span></button>
+                    <a class="book-icon-link" href="https://product.kyobobook.co.kr/detail/S000220363390" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 책 보기 (새 창)"><img src="assets/book-cover.jpg" alt="교사와 학부모를 위한 바이브 코딩 책 표지" width="34" height="47" decoding="async"><span>교사와 학부모를 위한<br>바이브 코딩 ↗</span></a>
+                </div>
+
                 <h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1>
                 <p class="family-invite">가족과 함께 도전해보세요!!</p>
                 <p class="brand-desc">
                     카메라 앞에서 신나게 몸을 펼쳐요!<br>
                     <strong>기본 미션 700점 · 전신 보너스 최대 700점</strong><br>깜짝 이벤트 보너스까지!
                 </p>
+                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos/big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos/heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos/victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos/thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos/flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos/hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos/dab-v2.png" alt="가벼운 댑 예시" title="가벼운 댑" width="120" height="120" decoding="async"></div>
+                <p class="gallery-caption">사진을 옆으로 넘겨서 크게 살펴보세요 ↔</p>
+                <div class="gallery-nav"><button id="gallery-prev" type="button" aria-label="이전 포즈 사진">←</button><span id="gallery-position" aria-live="polite">1 / 7 · 큰 V</span><button id="gallery-next" type="button" aria-label="다음 포즈 사진">→</button></div>
+                <button id="practice-home-btn" class="practice-entry" type="button">📷 전체 화면으로 미리 연습하기</button>
+                <p class="practice-entry-note">닉네임 없이 연습해요 · 점수는 저장되지 않아요</p>
 
                 <div class="input-box-wrapper">
                     <input type="text" id="nickname-input" class="text-input" placeholder="선생님 닉네임을 입력하세요" maxlength="12">
@@ -821,6 +872,7 @@ html, body {
                 <div id="pose-title" class="pose-brief-title">큰 V 🙆‍♂️</div>
                 <div id="pose-desc" class="pose-brief-desc">두 팔을 머리 위로 시원하게 뻗어 V자를 만드세요!</div>
             </div>
+            <div id="practice-controls" hidden><select id="practice-pose-select" aria-label="연습할 포즈"><option value="big_v">큰 V</option><option value="heart">머리 위 하트</option><option value="victory">한손 브이</option><option value="thumb_up">엄지척</option><option value="flower">양손 꽃피우기</option><option value="hero">슈퍼히어로</option><option value="dab">가벼운 댑</option><option value="body_bonus">전신 보너스</option></select><button id="practice-guide-btn" type="button">📖 안내 보기</button></div>
         </div>
 
         <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 2초 예고) -->
@@ -939,7 +991,19 @@ html, body {
 
 </div>
 
-<script src="./sheets-sync.js?v=20261009-32"></script>
+<dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title">
+    <div class="guide-shell">
+        <header class="guide-header"><strong id="guide-title">🤪 포즈 챌린지 사용 매뉴얼</strong><button id="guide-close-btn" type="button">앱으로 가기 ✕</button></header>
+        <div id="guide-body" class="guide-body"><article id="guide-page" class="guide-page" aria-live="polite"></article></div>
+        <footer class="guide-footer">
+            <div id="guide-dots" class="guide-dots" aria-label="매뉴얼 페이지 선택"></div>
+            <nav class="guide-navigation" aria-label="매뉴얼 페이지 이동"><button id="guide-prev" type="button">← 이전</button><span id="guide-position" aria-live="polite"></span><button id="guide-next" type="button">다음 →</button></nav>
+            <button id="guide-practice-btn" class="practice-entry" type="button">📷 이 포즈 전체 화면 연습</button><p>연습 기록은 랭킹에 저장되지 않아요</p>
+        </footer>
+    </div>
+</dialog>
+
+<script src="./sheets-sync.js?v=20261009-33"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -1502,6 +1566,7 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261009-32"></script>
+<script src="./experience.js?v=20261009-33"></script>
+<script src="./guide.js?v=20261009-33"></script>
 </body>
 </html>
