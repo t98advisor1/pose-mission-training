@@ -1,8 +1,9 @@
 /**
- * Codex follow-up sync 36, based on the preserved Gemini 19 / Codex 24 / 31 / 32 assembly.
+ * Codex follow-up sync 37, based on the preserved Gemini 19 / Codex 24 / 31 / 32 assembly.
  * One canonical full-body track accepts seven grades; API mission keys stay stable.
  * TOP10 disclosure reuses the same received leaderboard. Earlier snapshots remain unchanged.
  * Read failures have a separate retry notice; cached ranking and score receipts stay intact.
+ * Ranking is mounted and polled only on the result screen; saving remains independent.
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -191,6 +192,7 @@
 
         const container = document.createElement("div");
         container.id = "sync-dashboard-container";
+        container.hidden = currentScreen !== "result";
         container.style.cssText = `
             width: 100%;
             background: #ffffff;
@@ -281,9 +283,9 @@
         topTenPanel.appendChild(topTenList);
         container.appendChild(topTenPanel);
 
-        const mountHome = document.getElementById("leaderboard-home");
-        if (mountHome) {
-            mountHome.appendChild(container);
+        const mountResult = document.getElementById("leaderboard-result");
+        if (mountResult) {
+            mountResult.appendChild(container);
         } else {
             document.body.appendChild(container);
         }
@@ -297,7 +299,7 @@
     }
 
     function openTopTen() {
-        if (currentScreen === "game") return;
+        if (currentScreen !== "result") return;
         const panel = document.getElementById("ranking-top10-panel");
         const button = document.getElementById("ranking-top10-button");
         if (!panel || !button) return;
@@ -315,7 +317,7 @@
         const button = document.getElementById("ranking-top10-button");
         if (panel) panel.hidden = true;
         if (button) button.setAttribute("aria-expanded", "false");
-        if (wasOpen && restoreFocus && button && currentScreen !== "game" && !document.hidden) button.focus();
+        if (wasOpen && restoreFocus && button && currentScreen === "result" && !document.hidden) button.focus();
         else if (wasOpen && panel && panel.contains(document.activeElement)) document.activeElement.blur();
     }
 
@@ -338,24 +340,17 @@
         renderLeaderboardRows(list, rows, 10, true);
     }
 
-    // 화면 전환에 따른 랭킹 위젯 이동
+    // 랭킹은 결과 화면에만 표시한다. 시작·게임·연습에서는 숨긴다.
     function mountLeaderboard(screenName) {
         const dashboard = document.getElementById("sync-dashboard-container");
         if (!dashboard) return;
-        dashboard.hidden = screenName === "game";
-        if (screenName === "game") closeTopTen(false);
+        dashboard.hidden = screenName !== "result";
+        if (screenName !== "result") closeTopTen(false);
 
-        const mountHome = document.getElementById("leaderboard-home");
         const mountResult = document.getElementById("leaderboard-result");
 
-        if (screenName === "start" || screenName === "game") {
-            if (mountHome && !mountHome.contains(dashboard)) {
-                mountHome.appendChild(dashboard);
-            }
-        } else if (screenName === "result") {
-            if (mountResult && !mountResult.contains(dashboard)) {
-                mountResult.appendChild(dashboard);
-            }
+        if (mountResult && !mountResult.contains(dashboard)) {
+            mountResult.appendChild(dashboard);
         }
     }
 
@@ -572,7 +567,7 @@
 
     // 랭킹 폴링 단계
     async function fetchLeaderboardStep() {
-        if (!SHEETS_WEB_APP_URL || document.hidden || currentScreen === "game" || isFetchingLeaderboard) {
+        if (!SHEETS_WEB_APP_URL || document.hidden || currentScreen !== "result" || isFetchingLeaderboard) {
             return;
         }
 
@@ -592,7 +587,7 @@
 
             activeLeaderboardCleanup = null;
 
-            if (document.hidden || currentScreen === "game") {
+            if (document.hidden || currentScreen !== "result") {
                 return;
             }
 
@@ -611,7 +606,7 @@
 
             activeLeaderboardCleanup = null;
 
-            if (document.hidden || currentScreen === "game") {
+            if (document.hidden || currentScreen !== "result") {
                 return;
             }
 
@@ -622,7 +617,7 @@
             if (thisGen === leaderboardGeneration) {
                 isFetchingLeaderboard = false;
                 activeLeaderboardCleanup = null;
-                if (!document.hidden && currentScreen !== "game" && SHEETS_WEB_APP_URL) {
+                if (!document.hidden && currentScreen === "result" && SHEETS_WEB_APP_URL) {
                     leaderboardTimer = setTimeout(fetchLeaderboardStep, LEADERBOARD_DELAY_MS);
                 }
             }
@@ -644,7 +639,7 @@
 
     function resumeLeaderboard() {
         stopLeaderboard();
-        if (!document.hidden && currentScreen !== "game" && SHEETS_WEB_APP_URL) {
+        if (!document.hidden && currentScreen === "result" && SHEETS_WEB_APP_URL) {
             fetchLeaderboardStep();
         }
     }
@@ -654,7 +649,7 @@
         if (document.hidden) {
             stopLeaderboard();
         } else {
-            if (currentScreen !== "game") {
+            if (currentScreen === "result") {
                 resumeLeaderboard();
             }
             processQueue();
@@ -729,7 +724,7 @@
                 const savedLabel = isBodyMission(targetMission) ? `전신 보너스 ${confirmedScores.bodyBonusScore}점` : `${displayMission(targetMission)} (+100점)`;
                 updateSyncStatusUI(`'${savedLabel}' 시트 저장 완료!`, true);
 
-                if (currentScreen !== "game") {
+                if (currentScreen === "result") {
                     stopLeaderboard();
                     resumeLeaderboard();
                 }
@@ -788,7 +783,7 @@
             injectUI();
             updateSyncStatusUI("새 게임이 시작되었습니다. 포즈에 도전하세요!");
 
-            if (currentScreen !== "game") {
+            if (currentScreen === "result") {
                 resumeLeaderboard();
             }
 
@@ -854,7 +849,7 @@
 
             mountLeaderboard(currentScreen);
 
-            if (currentScreen === "game") {
+            if (currentScreen !== "result") {
                 stopLeaderboard();
             } else {
                 resumeLeaderboard();
@@ -878,7 +873,7 @@
             SHEETS_WEB_APP_URL = String(url || "").trim();
             updateSyncStatusUI();
             if (SHEETS_WEB_APP_URL) {
-                if (currentScreen !== "game") {
+                if (currentScreen === "result") {
                     resumeLeaderboard();
                 }
                 if (syncQueue.length > 0) {
@@ -901,7 +896,7 @@
             if (syncQueue.length > 0) {
                 processQueue();
             }
-            if (currentScreen !== "game") {
+            if (currentScreen === "result") {
                 resumeLeaderboard();
             }
         }

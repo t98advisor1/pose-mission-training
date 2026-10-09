@@ -1,4 +1,4 @@
-/** Codex follow-up33: 직접 넘기는 첫 안내와 큰 사진. 카메라 연습은 PosePractice에 위임. */
+/** Codex follow-up37: 클릭해서 여는 안내와 사진. 카메라 연습은 PosePractice에 위임. */
 (function () {
     const dialog = document.getElementById('guide-dialog');
     const page = document.getElementById('guide-page');
@@ -12,9 +12,9 @@
     const gallery = document.querySelector('.pose-thumbnail-strip');
     const photos = Array.from(gallery.querySelectorAll('img'));
     const basePoses = poses.filter(p => p.id !== 'body_bonus');
-    const seenKey = 'pose-mission-guide-seen-v33';
     let currentPage = 0;
     let galleryIndex = 0;
+    let galleryWidth = gallery.clientWidth;
     let returnFocus = opener;
     let touchStart = null;
     const pages = [
@@ -29,7 +29,7 @@
         {id:'hero',emoji:'🦸',title:'슈퍼히어로',text:'한 손은 허리에, 다른 팔은 대각선 위로 쭉 뻗어요. 어느 쪽 팔을 올려도 좋아요.',action:'허리에 둔 손도 잘 보이게, 영웅 자세로 2초!'},
         {id:'dab',emoji:'🕺',title:'가벼운 댑',text:'한 팔은 옆 위로 길게 뻗고, 다른 팔은 얼굴 앞에서 접어요. 사진처럼 두 팔을 서로 다르게 만들어 주세요.',action:'목을 무리하게 숙이지 말고, 가벼운 댑으로 2초!'},
         {id:'body_bonus',emoji:'⭐',title:'전신 보너스!',text:'일곱 포즈 뒤에는 몸 전체가 보이게 팔과 다리를 넓혀 2초 유지해요. 보이는 몸 관절과 펼친 크기에 따라 100·200·300·400·500·600·700점 중 한 번의 보너스를 받아요.',action:'가장 많은 관절로 파이프를 구성하면 받을 수 있는 보너스 점수!! 2초 동안 유지한 가장 낮은 등급으로 확정돼요.'},
-        {emoji:'🔒',title:'별명으로 함께하는 랭킹',text:'카메라 영상·사진·신체 좌표는 저장하거나 전송하지 않아요. 실전의 별명과 성공 결과만 기록하며, TOP10 보기에서 닉네임별 최고 기록을 볼 수 있어요.',action:'10명보다 적으면 등록된 인원만 표시해요. 경과 시간은 화면에만 표시돼요.'},
+        {emoji:'🔒',title:'별명으로 함께하는 랭킹',text:'카메라 영상·사진·신체 좌표는 저장하거나 전송하지 않아요. 실전의 별명과 성공 결과만 기록하며, 게임을 마친 결과 화면의 TOP10 보기에서 닉네임별 최고 기록을 볼 수 있어요.',action:'10명보다 적으면 등록된 인원만 표시해요. 경과 시간은 화면에만 표시돼요.'},
         {emoji:'🎉',title:'먼저 연습해 볼까요?',text:'전체 화면 연습에서는 원하는 포즈를 골라 여러 번 익힐 수 있어요. 연습 결과는 저장하지 않으며, 준비되면 앱으로 돌아가 닉네임을 넣고 실전에 도전해요.',action:'연습 중에도 안내 보기·일시정지·장식 켜고 끄기·연습 마치기를 사용할 수 있어요.'}
     ];
     function textElement(tag, text, className) {
@@ -101,7 +101,6 @@
         if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) movePage(dx < 0 ? 1 : -1);
     },{passive:true});
     dialog.addEventListener('close',() => {
-        try { localStorage.setItem(seenKey,'1'); } catch (_) {}
         if(returnFocus && returnFocus.isConnected) returnFocus.focus();
     });
     async function startPractice(poseId) {
@@ -128,7 +127,16 @@
         gallery.scrollTo({left:photos[galleryIndex].offsetLeft - photos[0].offsetLeft,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
         renderGallery();
     }
+    function alignGalleryAfterResize() {
+        galleryWidth = gallery.clientWidth;
+        if (!galleryWidth) return;
+        gallery.scrollTo({left:photos[galleryIndex].offsetLeft - photos[0].offsetLeft,behavior:'instant'});
+        renderGallery();
+    }
     gallery.addEventListener('scroll',() => {
+        // 회전으로 바뀐 스크롤 위치를 새 포즈 선택으로 처리하지 않는다.
+        if (gallery.clientWidth !== galleryWidth) { alignGalleryAfterResize(); return; }
+        if (!galleryWidth) return;
         let distance = Infinity;
         photos.forEach((photo,index) => {
             const candidate = Math.abs(photo.offsetLeft - photos[0].offsetLeft - gallery.scrollLeft);
@@ -138,8 +146,7 @@
     },{passive:true});
     document.getElementById('gallery-prev').addEventListener('click',() => moveGallery(-1));
     document.getElementById('gallery-next').addEventListener('click',() => moveGallery(1));
+    window.addEventListener('resize',alignGalleryAfterResize);
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(alignGalleryAfterResize).observe(gallery);
     renderGallery(); renderPage();
-    let seen = false;
-    try { seen = localStorage.getItem(seenKey) === '1'; } catch (_) {}
-    if (!seen) openGuide();
 })();
