@@ -1,7 +1,8 @@
 /**
- * Codex follow-up sync 32, based on the preserved Gemini 19 / Codex 24 / 31 assembly.
+ * Codex follow-up sync 36, based on the preserved Gemini 19 / Codex 24 / 31 / 32 assembly.
  * One canonical full-body track accepts seven grades; API mission keys stay stable.
  * TOP10 disclosure reuses the same received leaderboard. Earlier snapshots remain unchanged.
+ * Read failures have a separate retry notice; cached ranking and score receipts stay intact.
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -101,6 +102,7 @@
     let isFetchingLeaderboard = false;
     let lastSuccessfulRankTime = null;
     let cachedLeaderboardData = null;
+    let leaderboardReadFailed = false;
     let topTenOpen = false;
 
     // UUID v4 생성
@@ -220,6 +222,13 @@
         rankingHeader.appendChild(rankUpdated);
         container.appendChild(rankingHeader);
 
+        const rankConnection = document.createElement("p");
+        rankConnection.id = "rank-connection-status";
+        rankConnection.setAttribute("role", "status");
+        rankConnection.setAttribute("aria-live", "polite");
+        rankConnection.style.cssText = "margin: 6px 0; color: #9a3412; line-height: 1.5;";
+        container.appendChild(rankConnection);
+
         const listContainer = document.createElement("div");
         listContainer.id = "ranking-list-box";
         listContainer.style.cssText = "display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto;";
@@ -278,7 +287,7 @@
         } else {
             document.body.appendChild(container);
         }
-        renderTopTenUI();
+        renderLeaderboardUI(cachedLeaderboardData, lastSuccessfulRankTime);
         document.addEventListener("keydown", event => {
             if (event.key === "Escape" && topTenOpen && topTenPanel.contains(document.activeElement)) {
                 event.preventDefault();
@@ -316,13 +325,16 @@
         if (!list || !summary) return;
         const rows = leaderboardRows(cachedLeaderboardData);
         if (cachedLeaderboardData === null) {
-            summary.textContent = "랭킹을 불러오는 중입니다.";
+            summary.textContent = leaderboardReadFailed
+                ? "랭킹을 불러오지 못했습니다. 자동으로 다시 시도합니다."
+                : "랭킹을 불러오는 중입니다.";
             list.textContent = "";
             return;
         }
         summary.textContent = rows.length < 10
             ? `현재 ${rows.length}명의 기록이 있습니다. 등록된 참가자만 표시합니다.`
             : "상위 10명의 기록을 표시합니다.";
+        if (leaderboardReadFailed) summary.textContent += " 마지막으로 확인한 순위이며, 다시 연결을 시도합니다.";
         renderLeaderboardRows(list, rows, 10, true);
     }
 
@@ -402,7 +414,27 @@
     function renderLeaderboardUI(leaderboard, updatedAt) {
         const listBox = document.getElementById("ranking-list-box");
         const updatedElem = document.getElementById("rank-updated-text");
+        const connectionElem = document.getElementById("rank-connection-status");
         if (!listBox) return;
+
+        if (connectionElem) {
+            connectionElem.hidden = !leaderboardReadFailed;
+            connectionElem.textContent = leaderboardReadFailed
+                ? (leaderboard === null
+                    ? "랭킹에 연결하지 못했습니다. 잠시 후 자동으로 다시 시도합니다."
+                    : "최근 연결에 실패했습니다. 마지막으로 확인한 순위를 표시하며 자동으로 다시 시도합니다.")
+                    + " Google 계정을 여러 개 쓰고 있다면 시크릿 창에서도 확인해 보세요."
+                : "";
+        }
+
+        if (leaderboard === null) {
+            listBox.textContent = leaderboardReadFailed
+                ? "랭킹을 불러오지 못했습니다. 자동 재시도 중입니다."
+                : "랭킹을 불러오는 중입니다.";
+            if (updatedElem) updatedElem.textContent = leaderboardReadFailed ? "연결 확인 전" : "-";
+            renderTopTenUI();
+            return;
+        }
 
         if (updatedElem && updatedAt) {
             updatedElem.textContent = new Date(updatedAt).toLocaleString("ko-KR", {
@@ -567,7 +599,10 @@
             if (data && data.status === "success" && Array.isArray(data.leaderboard)) {
                 cachedLeaderboardData = data.leaderboard;
                 lastSuccessfulRankTime = data.updatedAt || new Date().toISOString();
+                leaderboardReadFailed = false;
                 renderLeaderboardUI(cachedLeaderboardData, lastSuccessfulRankTime);
+            } else {
+                throw new Error("INVALID_LEADERBOARD_RESPONSE");
             }
         } catch (err) {
             if (thisGen !== leaderboardGeneration) {
@@ -580,9 +615,9 @@
                 return;
             }
 
-            if (cachedLeaderboardData) {
-                renderLeaderboardUI(cachedLeaderboardData, lastSuccessfulRankTime);
-            }
+            if (err && err.name === "AbortError") return;
+            leaderboardReadFailed = true;
+            renderLeaderboardUI(cachedLeaderboardData, lastSuccessfulRankTime);
         } finally {
             if (thisGen === leaderboardGeneration) {
                 isFetchingLeaderboard = false;
