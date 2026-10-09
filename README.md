@@ -1,4 +1,10 @@
-# 내 몸을 펼쳐라. (스트레칭!!)
+# 온몸으로 찰칵! 포즈 챌린지
+
+시작 화면에 **‘가족과 함께 도전해보세요!!’** 문구와 『교사와 학부모를 위한 바이브 코딩』 책 표지 아이콘을 표시합니다. 표지 아이콘은 [사용자가 지정한 교보문고 도서 페이지](https://product.kyobobook.co.kr/detail/S000220363390)로 연결되며, 해당 페이지에서 확인한 대표 이미지(ISBN 9791199560062)를 원본 비율로 사용했습니다. 모든 화면 하단에는 ⓒ 표시와 기존 저작권 문구가 나옵니다.
+
+시작·결과 화면은 기존 TOP5와 **TOP10 보기** 버튼을 제공합니다. 펼친 목록에는 서버가 반환한 실제 참가자 최대 10명을 표시하고, 10명보다 적으면 실제 인원을 안내합니다. 닉네임별 최고 기록을 기준으로 하며 같은 점수는 공동순위입니다. 열린 목록도 실시간으로 갱신되고 게임 중에는 랭킹 표시와 갱신을 멈춥니다. 2026-10-09 읽기 전용 API 확인 당시 실제 참가자는 7명이었습니다. TOP10 확인을 위해 가상 참가자를 추가하지 않았습니다.
+
+TOP10 수정은 기존 저장 연결 59개와 새 화면 동작 14개, 합계 **73개** 및 서버 결합 **4개** 검사를 통과했습니다. 로컬 실제 브라우저에서 Google Sheets API의 7명 목록, 열기·닫기·ESC, 390px 세로 폭의 표지·썸네일·문구·랭킹 표시를 확인했습니다. 이 확인은 실제 휴대폰 카메라·포즈 인식 시험을 대신하지 않습니다.
 
 Gemini에서 실제 생성한 HTML·JavaScript와 수정 응답을 조립하고, Codex가 전신 보너스·저장 연결과 일부 판정·카메라 취소 처리를 후속 보완한 교원연수용 앱입니다. 생성 원문과 보완 이력을 구분해 보존했습니다. 상단에 승인된 AI 사진 7개의 썸네일을 보여 주고 큰 V·머리 위 하트·한손 브이·엄지척·양손 꽃피우기·슈퍼히어로·가벼운 댑을 차례로 진행한 뒤 마지막 전신 보너스에 도전합니다. 기본 자세를 연속 2초 유지하면 미션마다 한 번 100점을 주고 다음 미션으로 자동 진행합니다. 화면의 ‘양손 꽃피우기’는 기존 ‘꽃받침’ 미션의 안내 이름이며 API·Google Sheets 헤더는 `꽃받침`을 유지해 기존 기록을 보존합니다.
 
@@ -20,7 +26,7 @@ Gemini에서 실제 생성한 HTML·JavaScript와 수정 응답을 조립하고,
 
 앞선 GitHub Pages 배포와 실제 HTTPS 화면의 랭킹 조회를 확인했고, 사용자는 휴대폰에서 카메라 영상이 나오는 것을 확인했습니다. 이번 새 화면의 7+1단계 자동 진행, 실제 사람의 2초 유지·전신 등급, 사슴뿔·코·볼터치와 연결선 위치, 모바일 성능은 추가 휴대폰 시험이 필요합니다.
 
-실행 주소: [내 몸을 펼쳐라.](https://t98advisor1.github.io/pose-mission-training/)
+실행 주소: [온몸으로 찰칵! 포즈 챌린지](https://t98advisor1.github.io/pose-mission-training/)
 
 저장소: [GitHub pose-mission-training](https://github.com/t98advisor1/pose-mission-training)
 
@@ -32,6 +38,8 @@ GitHub 저장소의 첫 화면에서 다음 파일이 바로 보이도록 올립
 index.html
 experience.js
 sheets-sync.js
+assets/
+  book-cover.jpg
 photos/
   big-v-v2.png
   heart-v2.png
@@ -52,14 +60,14 @@ hints/
 README.md
 ```
 
-`index.html`은 웹페이지와 인식 기본 코드, `experience.js`는 사진 예고·자동 진행·전신 보너스·경과 시간·카메라 화면·연결선·AR 장식, `sheets-sync.js`는 저장 큐·영수증·랭킹 연결, `photos/`는 승인된 AI 생성 포즈 사진입니다. `hints/`에는 기본 미션 SVG 7개만 올립니다. 전신은 문장으로 안내하며 사용하지 않는 `body_bonus.svg`는 로컬 원문에만 보존합니다. 공개 파일은 위 목록의 총 19개입니다. `.nojekyll`은 별도 Jekyll 처리를 건너뛰도록 두는 빈 파일입니다. **`preview-server.mjs`, `versions/`, `backend/`는 로컬 확인·원문·설치 이력용이므로 앱 공개 파일에 포함하지 않습니다.** 브라우저의 파일 업로드는 `.gitignore`만으로 제외되지 않으니 선택한 파일을 직접 확인합니다.
+`index.html`은 웹페이지와 인식 기본 코드, `experience.js`는 사진 예고·자동 진행·전신 보너스·경과 시간·카메라 화면·연결선·AR 장식, `sheets-sync.js`는 저장 큐·영수증·랭킹 연결, `assets/`는 책 표지, `photos/`는 승인된 AI 생성 포즈 사진입니다. `hints/`에는 기본 미션 SVG 7개만 올립니다. 전신은 문장으로 안내하며 사용하지 않는 `body_bonus.svg`는 로컬 원문에만 보존합니다. 공개 파일은 위 목록의 총 20개입니다. `.nojekyll`은 별도 Jekyll 처리를 건너뛰도록 두는 빈 파일입니다. **`preview-server.mjs`, `versions/`, `backend/`는 로컬 확인·원문·설치 이력용이므로 앱 공개 파일에 포함하지 않습니다.** 브라우저의 파일 업로드는 `.gitignore`만으로 제외되지 않으니 선택한 파일을 직접 확인합니다.
 
 개인정보, 실제 참가 기록, Google Sheets 원본·내보내기 파일, OAuth 토큰·비밀키·`.env`는 올리지 않습니다. 시트 연결이 추가된 뒤에도 공개 파일에 비밀값을 넣지 않습니다.
 
 ## GitHub Pages로 직접 게시하기
 
 1. GitHub에서 사용할 전용 저장소를 엽니다. 새 저장소가 필요하면 승인된 계정·공개 범위로 만듭니다. GitHub Free에서 Pages를 사용하려면 공개 저장소가 필요합니다. [GitHub 공식 생성 안내](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
-2. **Add file → Upload files**에서 위 파일을 올립니다. `photos/`와 `hints/` 폴더 구조도 유지합니다. **Commit changes**로 저장한 뒤, `main` 브랜치 첫 화면에 `index.html`과 두 폴더가 있는지 확인합니다.
+2. **Add file → Upload files**에서 위 파일을 올립니다. `assets/`·`photos/`·`hints/` 폴더 구조도 유지합니다. **Commit changes**로 저장한 뒤, `main` 브랜치 첫 화면에 `index.html`과 세 폴더가 있는지 확인합니다.
 3. 저장소의 **Settings → Pages**를 엽니다. Settings가 안 보이면 해당 저장소를 관리할 권한부터 확인합니다.
 4. **Build and deployment → Source**를 **Deploy from a branch**로 고릅니다.
 5. **Branch: main**, **Folder: /(root)**를 선택하고 **Save**를 누릅니다. 이 설정 순서는 [GitHub 공식 게시 소스 안내](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)를 따릅니다.
@@ -100,6 +108,6 @@ Codex는 전신 보너스 판정과 2초 구간의 최저 등급 처리, 경과 
 
 현재 노트북에는 카메라가 없습니다. 휴대폰의 카메라 표시 성공은 사용자에게 확인받았으며, 새 버전은 휴대폰 Safari/Chrome에서 기본 7개·전신 1개 미션의 2초 유지, 전신 100~700점 7등급과 최저 등급 확정, 이벤트 보너스, 자동 진행, 경과 시간, 마지막 결과와 시트 반영을 다시 확인합니다. 세로·가로 회전, 사슴뿔·빨간 코·볼터치와 몸 연결선의 위치, 장식 토글, 일시정지·복귀, 모바일 처리 속도도 확인 대상입니다. 실제 사람의 양손 꽃피우기(기존 꽃받침) 인식과 실패 원인도 추가 관찰해야 합니다. 두 기기 동시 사용과 서버 결과 조작 방지는 검증된 것으로 소개하지 않습니다. 서버는 브라우저가 보내는 성공 결과를 수용하므로 경쟁·평가용 인증 시스템을 제공하지 않습니다.
 
-교사와 학부모를 위한 바이브 코딩 All rights reserved
+ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
 
 이번 수정의 사슴뿔 상단 공간 보완은 실제 Gemini29 응답을 조립했습니다. 좁은 화면 안내·타이머 가독성 조정과 손 힌트의 미사용 visibility 필드 처리는 Codex가 보완했습니다.

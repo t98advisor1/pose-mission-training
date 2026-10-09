@@ -1,7 +1,7 @@
 /**
- * Codex follow-up sync 31, based on the preserved Gemini 19 / Codex 24 assembly.
+ * Codex follow-up sync 32, based on the preserved Gemini 19 / Codex 24 / 31 assembly.
  * One canonical full-body track accepts seven grades; API mission keys stay stable.
- * Original Gemini 19 and Codex 24 snapshots remain unchanged.
+ * TOP10 disclosure reuses the same received leaderboard. Earlier snapshots remain unchanged.
  */
 (function() {
     let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby23Qk5rnf8slPA-KyMxCNAZjeU_NHkK4UQEVgCI0vNEd1sLHrOyxV_f1Zl2TNqRnnN/exec";
@@ -101,6 +101,7 @@
     let isFetchingLeaderboard = false;
     let lastSuccessfulRankTime = null;
     let cachedLeaderboardData = null;
+    let topTenOpen = false;
 
     // UUID v4 생성
     function generateUUID() {
@@ -224,18 +225,113 @@
         listContainer.style.cssText = "display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto;";
         container.appendChild(listContainer);
 
+        const topTenButton = document.createElement("button");
+        topTenButton.id = "ranking-top10-button";
+        topTenButton.type = "button";
+        topTenButton.textContent = "TOP10 보기";
+        topTenButton.setAttribute("aria-expanded", "false");
+        topTenButton.setAttribute("aria-controls", "ranking-top10-panel");
+        topTenButton.style.cssText = "width: 100%; min-height: 44px; margin-top: 8px; border: 1px solid #c2410c; border-radius: 10px; background: #fff7ed; color: #7c2d12; font: inherit; font-weight: bold; cursor: pointer;";
+        topTenButton.addEventListener("click", () => {
+            if (topTenOpen) closeTopTen();
+            else openTopTen();
+        });
+        container.appendChild(topTenButton);
+
+        const topTenPanel = document.createElement("section");
+        topTenPanel.id = "ranking-top10-panel";
+        topTenPanel.hidden = true;
+        topTenPanel.setAttribute("role", "region");
+        topTenPanel.setAttribute("aria-labelledby", "ranking-top10-title");
+        topTenPanel.style.cssText = "margin-top: 10px; padding: 12px; border: 1px solid #fed7aa; border-radius: 12px; background: #fffbeb; color: #374151; font-size: 1rem;";
+        const topTenHeader = document.createElement("div");
+        topTenHeader.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 8px;";
+        const topTenTitle = document.createElement("h3");
+        topTenTitle.id = "ranking-top10-title";
+        topTenTitle.textContent = "🏆 명예의 전당 TOP10";
+        topTenTitle.style.cssText = "margin: 0; font-size: 1rem; color: #7c2d12;";
+        const topTenClose = document.createElement("button");
+        topTenClose.id = "ranking-top10-close";
+        topTenClose.type = "button";
+        topTenClose.textContent = "닫기";
+        topTenClose.setAttribute("aria-label", "TOP10 닫기");
+        topTenClose.style.cssText = "min-height: 44px; min-width: 52px; padding: 6px 10px; border: 1px solid #9a3412; border-radius: 8px; background: #ffffff; color: #7c2d12; font: inherit; cursor: pointer;";
+        topTenClose.addEventListener("click", () => closeTopTen());
+        topTenHeader.appendChild(topTenTitle);
+        topTenHeader.appendChild(topTenClose);
+        topTenPanel.appendChild(topTenHeader);
+        const topTenSummary = document.createElement("p");
+        topTenSummary.id = "ranking-top10-summary";
+        topTenSummary.setAttribute("role", "status");
+        topTenSummary.setAttribute("aria-live", "polite");
+        topTenSummary.style.cssText = "margin: 8px 0; font-size: 0.85rem; line-height: 1.5; color: #7c2d12;";
+        topTenPanel.appendChild(topTenSummary);
+        const topTenList = document.createElement("div");
+        topTenList.id = "ranking-top10-list";
+        topTenList.style.cssText = "display: flex; flex-direction: column; gap: 6px; max-height: min(55vh, 400px); overflow-y: auto;";
+        topTenPanel.appendChild(topTenList);
+        container.appendChild(topTenPanel);
+
         const mountHome = document.getElementById("leaderboard-home");
         if (mountHome) {
             mountHome.appendChild(container);
         } else {
             document.body.appendChild(container);
         }
+        renderTopTenUI();
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && topTenOpen && topTenPanel.contains(document.activeElement)) {
+                event.preventDefault();
+                closeTopTen();
+            }
+        });
+    }
+
+    function openTopTen() {
+        if (currentScreen === "game") return;
+        const panel = document.getElementById("ranking-top10-panel");
+        const button = document.getElementById("ranking-top10-button");
+        if (!panel || !button) return;
+        topTenOpen = true;
+        panel.hidden = false;
+        button.setAttribute("aria-expanded", "true");
+        renderTopTenUI();
+        document.getElementById("ranking-top10-close").focus();
+    }
+
+    function closeTopTen(restoreFocus = true) {
+        const wasOpen = topTenOpen;
+        topTenOpen = false;
+        const panel = document.getElementById("ranking-top10-panel");
+        const button = document.getElementById("ranking-top10-button");
+        if (panel) panel.hidden = true;
+        if (button) button.setAttribute("aria-expanded", "false");
+        if (wasOpen && restoreFocus && button && currentScreen !== "game" && !document.hidden) button.focus();
+        else if (wasOpen && panel && panel.contains(document.activeElement)) document.activeElement.blur();
+    }
+
+    function renderTopTenUI() {
+        const list = document.getElementById("ranking-top10-list");
+        const summary = document.getElementById("ranking-top10-summary");
+        if (!list || !summary) return;
+        const rows = leaderboardRows(cachedLeaderboardData);
+        if (cachedLeaderboardData === null) {
+            summary.textContent = "랭킹을 불러오는 중입니다.";
+            list.textContent = "";
+            return;
+        }
+        summary.textContent = rows.length < 10
+            ? `현재 ${rows.length}명의 기록이 있습니다. 등록된 참가자만 표시합니다.`
+            : "상위 10명의 기록을 표시합니다.";
+        renderLeaderboardRows(list, rows, 10, true);
     }
 
     // 화면 전환에 따른 랭킹 위젯 이동
     function mountLeaderboard(screenName) {
         const dashboard = document.getElementById("sync-dashboard-container");
         if (!dashboard) return;
+        dashboard.hidden = screenName === "game";
+        if (screenName === "game") closeTopTen(false);
 
         const mountHome = document.getElementById("leaderboard-home");
         const mountResult = document.getElementById("leaderboard-result");
@@ -320,9 +416,19 @@
             });
         }
 
-        listBox.textContent = "";
+        renderLeaderboardRows(listBox, leaderboardRows(leaderboard), 5);
+        renderTopTenUI();
+    }
 
-        if (!leaderboard || leaderboard.length === 0) {
+    function leaderboardRows(leaderboard) {
+        return Array.isArray(leaderboard)
+            ? leaderboard.filter(item => item && typeof item === "object").slice(0, 10)
+            : [];
+    }
+
+    function renderLeaderboardRows(listBox, leaderboard, limit, expanded = false) {
+        listBox.textContent = "";
+        if (leaderboard.length === 0) {
             const emptyItem = document.createElement("div");
             emptyItem.style.cssText = "color: #9ca3af; text-align: center; padding: 4px 0;";
             emptyItem.textContent = "아직 등록된 랭킹 기록이 없습니다.";
@@ -330,27 +436,28 @@
             return;
         }
 
-        leaderboard.slice(0, 5).forEach((item) => {
+        leaderboard.slice(0, limit).forEach((item, index) => {
             const row = document.createElement("div");
             row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; border-radius: 4px; background: #fff7ed;";
+            if (expanded) row.style.cssText += " padding: 8px 6px; gap: 8px;";
 
             const leftBox = document.createElement("div");
             leftBox.style.cssText = "display: flex; gap: 8px; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
 
             const rankBadge = document.createElement("span");
-            rankBadge.style.cssText = "font-weight: bold; width: 22px; color: #ea580c;";
-            rankBadge.textContent = `${item.rank}위`;
+            rankBadge.style.cssText = "font-weight: bold; min-width: 2.5em; color: #ea580c;";
+            rankBadge.textContent = `${Number.isInteger(item.rank) && item.rank > 0 ? item.rank : index + 1}위`;
 
             const nameElem = document.createElement("span");
             nameElem.style.cssText = "color: #374151; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
-            nameElem.textContent = item.nickname || "익명";
+            nameElem.textContent = String(item.nickname || "익명");
 
             leftBox.appendChild(rankBadge);
             leftBox.appendChild(nameElem);
 
             const scoreBadge = document.createElement("span");
-            scoreBadge.style.cssText = "font-weight: bold; color: #c2410c;";
-            scoreBadge.textContent = `${item.score || 0}점`;
+            scoreBadge.style.cssText = "font-weight: bold; color: #c2410c; white-space: nowrap;";
+            scoreBadge.textContent = `${Number.isFinite(item.score) ? item.score : 0}점`;
 
             row.appendChild(leftBox);
             row.appendChild(scoreBadge);

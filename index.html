@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>내 몸을 펼쳐라. (스트레칭!!)</title>
+    <title>온몸으로 찰칵! 포즈 챌린지</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
@@ -737,6 +737,10 @@ html, body {
 .pose-thumbnail-strip img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 9px; border: 1px solid #fed7aa; background: #fff7ed; }
 .brand-title { font-size: clamp(1.8rem,7vw,2.25rem); }
 .brand-title small { display: block; font-size: .58em; margin-top: 7px; }
+.book-icon-link { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; margin-bottom: 12px; padding: 5px 10px 5px 5px; border: 1px solid #ddd6fe; border-radius: 12px; background: #f5f3ff; color: #51459c; text-decoration: none; text-align: left; font-size: .75rem; line-height: 1.4; }
+.book-icon-link img { width: 34px; height: 47px; object-fit: contain; border-radius: 3px; }
+.book-icon-link:focus-visible { outline: 3px solid #51459c; outline-offset: 3px; }
+.family-invite { font-size: .9rem; color: #9a3412; margin: 9px 0 0; }
 .bonus-preview-text { display: none; flex: 1 1 auto; min-height: 0; width: min(100%,700px); padding: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #e2e8f0; line-height: 1.35; }
 .bonus-preview-text h2 { font-size: clamp(1.6rem,5vw,2.5rem); color: #fbbf24; }
 .bonus-preview-text .bonus-intro { font-size: clamp(1.1rem,4vw,1.65rem); color: #fff; }
@@ -770,8 +774,10 @@ html, body {
     <div id="start-screen" class="screen active">
         <div class="scroll-screen-content">
             <div class="card-panel">
+                <a class="book-icon-link" href="https://product.kyobobook.co.kr/detail/S000220363390" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 책 보기 (새 창)"><img src="assets/book-cover.jpg" alt="교사와 학부모를 위한 바이브 코딩 책 표지" width="34" height="47" decoding="async"><span>교사와 학부모를 위한<br>바이브 코딩 ↗</span></a>
                 <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos/big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos/heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos/victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos/thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos/flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos/hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos/dab-v2.png" alt="가벼운 댑 예시" title="가벼운 댑" width="120" height="120" decoding="async"></div>
-                <h1 class="brand-title">내 몸을 펼쳐라.<small>(스트레칭!!)</small></h1>
+                <h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1>
+                <p class="family-invite">가족과 함께 도전해보세요!!</p>
                 <p class="brand-desc">
                     카메라 앞에서 신나게 몸을 펼쳐요!<br>
                     <strong>기본 미션 700점 · 전신 보너스 최대 700점</strong><br>깜짝 이벤트 보너스까지!
@@ -793,7 +799,7 @@ html, body {
             <div id="leaderboard-home" class="leaderboard-mount-box"></div>
         </div>
         <footer class="global-footer">
-            교사와 학부모를 위한 바이브 코딩 All rights reserved
+            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -879,7 +885,7 @@ html, body {
         </div>
 
         <footer class="global-footer">
-            교사와 학부모를 위한 바이브 코딩 All rights reserved
+            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -919,7 +925,7 @@ html, body {
             <div id="leaderboard-result" class="leaderboard-mount-box"></div>
         </div>
         <footer class="global-footer">
-            교사와 학부모를 위한 바이브 코딩 All rights reserved
+            ⓒ 교사와 학부모를 위한 바이브 코딩 All rights reserved
         </footer>
     </div>
 
@@ -933,7 +939,7 @@ html, body {
 
 </div>
 
-<script src="./sheets-sync.js?v=20261009-31"></script>
+<script src="./sheets-sync.js?v=20261009-32"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -1496,6 +1502,6 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261009-31"></script>
+<script src="./experience.js?v=20261009-32"></script>
 </body>
 </html>
